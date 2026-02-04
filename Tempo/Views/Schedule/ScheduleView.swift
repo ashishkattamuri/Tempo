@@ -637,41 +637,100 @@ struct ScheduleView: View {
     }
 
     private func applyResolution(_ resolution: ConflictResolution, action: ConflictAction) {
-        // Find the actual managed objects from allItems
-        guard let conflictingItem = allItems.first(where: { $0.id == resolution.conflictingItem.id }) else {
-            return
-        }
-
         switch action {
         case .moveConflicting(let newTime):
-            conflictingItem.startTime = newTime
-            conflictingItem.touch()
-            try? modelContext.save()
+            // Find and move the conflicting item
+            if let conflictingItem = allItems.first(where: { $0.id == resolution.conflictingItem.id }) {
+                conflictingItem.startTime = newTime
+                conflictingItem.touch()
+                try? modelContext.save()
+            }
 
         case .moveNew(let newTime):
+            // Move the new item - this resolves ALL conflicts at once
             if let newItemId = savedItem?.id,
                let newItem = allItems.first(where: { $0.id == newItemId }) {
                 newItem.startTime = newTime
                 newItem.touch()
                 try? modelContext.save()
             }
+            // Clear ALL resolutions and dismiss since moving the new item fixes everything
+            conflictResolutions.removeAll()
+            showingConflictResolution = false
+            savedItem = nil
+            return
 
         case .keepBoth:
-            // Do nothing - keep overlapping
+            // Just skip this conflict
             break
 
         case .deleteConflicting:
-            modelContext.delete(conflictingItem)
-            try? modelContext.save()
+            if let conflictingItem = allItems.first(where: { $0.id == resolution.conflictingItem.id }) {
+                modelContext.delete(conflictingItem)
+                try? modelContext.save()
+            }
         }
 
-        // Remove this resolution from the list
-        conflictResolutions.removeAll { $0.id == resolution.id }
+        // Recalculate remaining conflicts with updated schedule
+        recalculateRemainingConflicts(excludingResolved: resolution)
+    }
 
-        // If no more resolutions, dismiss
-        if conflictResolutions.isEmpty {
+    private func recalculateRemainingConflicts(excludingResolved resolved: ConflictResolution) {
+        guard let newItem = savedItem,
+              let actualNewItem = allItems.first(where: { $0.id == newItem.id }) else {
+            conflictResolutions.removeAll()
             showingConflictResolution = false
             savedItem = nil
+            return
+        }
+
+        // Fetch fresh items from the model context to get the latest state
+        let freshItems = fetchFreshItems(for: actualNewItem.scheduledDate)
+
+        // Get remaining conflicting item IDs (exclude the one we just resolved)
+        let remainingConflictIds = conflictResolutions
+            .filter { $0.id != resolved.id }
+            .map { $0.conflictingItem.id }
+
+        // Check which items still actually conflict with the new item (using fresh data)
+        let stillConflicting = freshItems.filter { item in
+            remainingConflictIds.contains(item.id) &&
+            !item.isCompleted &&
+            actualNewItem.overlaps(with: item)
+        }
+
+        if stillConflicting.isEmpty {
+            // No more conflicts - we're done
+            conflictResolutions.removeAll()
+            showingConflictResolution = false
+            savedItem = nil
+        } else {
+            // Recalculate resolutions with fresh slot suggestions using fresh items
+            conflictResolutions = reshuffleEngine.suggestResolution(
+                newItem: actualNewItem,
+                conflictingItems: stillConflicting,
+                allItems: freshItems
+            )
+        }
+    }
+
+    private func fetchFreshItems(for date: Date) -> [ScheduleItem] {
+        let startOfDay = date.startOfDay
+        let endOfDay = date.endOfDay
+
+        let predicate = #Predicate<ScheduleItem> { item in
+            item.scheduledDate >= startOfDay && item.scheduledDate <= endOfDay
+        }
+
+        let descriptor = FetchDescriptor<ScheduleItem>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.startTime)]
+        )
+
+        do {
+            return try modelContext.fetch(descriptor)
+        } catch {
+            return Array(allItems.filter { $0.scheduledDate.isSameDay(as: date) })
         }
     }
 }

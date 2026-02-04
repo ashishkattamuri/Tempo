@@ -1,4 +1,7 @@
 import Foundation
+import os.log
+
+private let slotFinderLog = OSLog(subsystem: "com.tempo.app", category: "SlotFinder")
 
 /// Main coordinator for schedule reshuffling.
 /// Implements the 9-step decision process to compassionately adjust schedules.
@@ -220,23 +223,25 @@ extension ReshuffleEngine {
     func suggestResolution(newItem: ScheduleItem, conflictingItems: [ScheduleItem], allItems: [ScheduleItem] = []) -> [ConflictResolution] {
         var resolutions: [ConflictResolution] = []
 
+        // Find the best slot to move the NEW item - this slot must avoid ALL conflicting items
+        // Find the latest end time among all conflicting items
+        let latestConflictEnd = conflictingItems.map { $0.endTime }.max() ?? newItem.endTime
+        let slotForNewItem = findNextAvailableSlot(
+            after: latestConflictEnd,
+            duration: newItem.durationMinutes,
+            on: newItem.scheduledDate,
+            allItems: allItems,
+            excluding: [newItem] + conflictingItems
+        )
+
         for conflicting in conflictingItems {
             let resolution: ConflictResolution
 
-            // Find best slot to move the conflicting item (after new item ends)
+            // Find best slot to move THIS conflicting item (after new item ends)
             let slotForConflicting = findNextAvailableSlot(
                 after: newItem.endTime,
                 duration: conflicting.durationMinutes,
                 on: conflicting.scheduledDate,
-                allItems: allItems,
-                excluding: [newItem, conflicting]
-            )
-
-            // Find best slot to move the new item (after conflicting ends)
-            let slotForNew = findNextAvailableSlot(
-                after: conflicting.endTime,
-                duration: newItem.durationMinutes,
-                on: newItem.scheduledDate,
                 allItems: allItems,
                 excluding: [newItem, conflicting]
             )
@@ -246,7 +251,7 @@ extension ReshuffleEngine {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .userDecision(moveConflictingTo: slotForConflicting, moveNewTo: slotForNew),
+                    suggestion: .userDecision(moveConflictingTo: slotForConflicting, moveNewTo: slotForNewItem),
                     reason: "\"\(newItem.title)\" is non-negotiable and conflicts with \"\(conflicting.title)\""
                 )
             } else if newItem.category.priority < conflicting.category.priority {
@@ -262,7 +267,7 @@ extension ReshuffleEngine {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .moveNew(to: slotForNew),
+                    suggestion: .moveNew(to: slotForNewItem),
                     reason: "\"\(conflicting.title)\" (\(conflicting.category.displayName)) has higher priority"
                 )
             } else {
@@ -270,7 +275,7 @@ extension ReshuffleEngine {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .userDecision(moveConflictingTo: slotForConflicting, moveNewTo: slotForNew),
+                    suggestion: .userDecision(moveConflictingTo: slotForConflicting, moveNewTo: slotForNewItem),
                     reason: "Both tasks have the same priority level"
                 )
             }
@@ -294,8 +299,18 @@ extension ReshuffleEngine {
         let maxHour = 22
         let now = Date()
 
+        let timeFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "h:mm a"
+            return f
+        }()
+
         // Start from the given time
         var candidateTime = time
+
+        os_log("Looking for %dmin slot after %{public}@", log: slotFinderLog, type: .debug, duration, timeFormatter.string(from: time))
+        os_log("Total items passed: %d", log: slotFinderLog, type: .debug, allItems.count)
+        os_log("Excluding %d items: %{public}@", log: slotFinderLog, type: .debug, excluding.count, excluding.map { $0.title }.joined(separator: ", "))
 
         // Don't schedule in the past (for today)
         if date.isToday && candidateTime < now {
@@ -310,6 +325,7 @@ extension ReshuffleEngine {
                 components.minute = roundedMinutes
             }
             candidateTime = calendar.date(from: components) ?? now
+            os_log("Adjusted for past time, now starting at %{public}@", log: slotFinderLog, type: .debug, timeFormatter.string(from: candidateTime))
         }
 
         // Don't schedule before 6 AM
@@ -323,16 +339,28 @@ extension ReshuffleEngine {
             .filter { $0.scheduledDate.isSameDay(as: date) && !excludeIds.contains($0.id) && !$0.isCompleted }
             .sorted { $0.startTime < $1.startTime }
 
-        // Try to find a slot that doesn't overlap with any existing item
-        let candidateEnd = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
+        os_log("Day items to check (%d):", log: slotFinderLog, type: .debug, dayItems.count)
+        for item in dayItems {
+            os_log("  - %{public}@ [%{public}@]: %{public}@ - %{public}@", log: slotFinderLog, type: .debug, item.title, item.category.displayName, timeFormatter.string(from: item.startTime), timeFormatter.string(from: item.endTime))
+        }
 
+        // Try to find a slot that doesn't overlap with any existing item
+        var iteration = 0
         for _ in 0..<50 { // Max iterations to prevent infinite loop
+            iteration += 1
+            // Recalculate end time based on current candidate start
+            let candidateEnd = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
             var hasConflict = false
+
+            os_log("Iteration %d: Trying %{public}@ - %{public}@", log: slotFinderLog, type: .debug, iteration, timeFormatter.string(from: candidateTime), timeFormatter.string(from: candidateEnd))
 
             for item in dayItems {
                 // Check if candidate overlaps with this item
-                if candidateTime < item.endTime && candidateEnd > item.startTime {
+                let overlaps = candidateTime < item.endTime && candidateEnd > item.startTime
+                if overlaps {
                     // Conflict found - move candidate to after this item
+                    os_log("  CONFLICT with %{public}@ (%{public}@ - %{public}@)", log: slotFinderLog, type: .debug, item.title, timeFormatter.string(from: item.startTime), timeFormatter.string(from: item.endTime))
+                    os_log("  Moving candidate to %{public}@", log: slotFinderLog, type: .debug, timeFormatter.string(from: item.endTime))
                     candidateTime = item.endTime
                     hasConflict = true
                     break
@@ -340,12 +368,15 @@ extension ReshuffleEngine {
             }
 
             if !hasConflict {
+                os_log("FOUND free slot: %{public}@", log: slotFinderLog, type: .info, timeFormatter.string(from: candidateTime))
                 break
             }
 
-            // Check if we've gone past end of day
-            if candidateTime.hour >= maxHour {
-                // Move to next day
+            // Check if the task would end past the allowed window (11 PM = hour 23)
+            let candidateEndCheck = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
+            if candidateEndCheck.hour >= 23 || (candidateEndCheck.hour < minHour && candidateEndCheck.hour > 0) {
+                // Task would end too late, move to next day
+                os_log("Task would end at %{public}@ (too late), moving to next day", log: slotFinderLog, type: .debug, timeFormatter.string(from: candidateEndCheck))
                 if let nextDay = calendar.date(byAdding: .day, value: 1, to: date) {
                     return nextDay.startOfDay.withTime(hour: minHour)
                 }
@@ -353,6 +384,7 @@ extension ReshuffleEngine {
             }
         }
 
+        os_log("FINAL RESULT: %{public}@", log: slotFinderLog, type: .info, timeFormatter.string(from: candidateTime))
         return candidateTime
     }
 }
