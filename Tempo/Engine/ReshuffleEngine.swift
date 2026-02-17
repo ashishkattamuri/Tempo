@@ -3,6 +3,42 @@ import os.log
 
 private let slotFinderLog = OSLog(subsystem: "com.tempo.app", category: "SlotFinder")
 
+// MARK: - Debug Logger
+private class SlotFinderDebugLog {
+    static let shared = SlotFinderDebugLog()
+    private var logFile: URL?
+    private let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss.SSS"
+        return f
+    }()
+
+    private init() {
+        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            logFile = docs.appendingPathComponent("slot_debug.log")
+            // Clear log on init
+            try? "".write(to: logFile!, atomically: true, encoding: .utf8)
+        }
+    }
+
+    func log(_ message: String) {
+        let timestamp = dateFormatter.string(from: Date())
+        let line = "[\(timestamp)] \(message)\n"
+        guard let logFile = logFile, let data = line.data(using: .utf8) else { return }
+        if let handle = try? FileHandle(forWritingTo: logFile) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            handle.closeFile()
+        } else {
+            try? data.write(to: logFile)
+        }
+    }
+}
+
+private func debugLog(_ message: String) {
+    SlotFinderDebugLog.shared.log(message)
+}
+
 /// Main coordinator for schedule reshuffling.
 /// Implements the 9-step decision process to compassionately adjust schedules.
 @MainActor
@@ -10,6 +46,9 @@ final class ReshuffleEngine {
     private let overflowDetector = OverflowDetector()
     private let eveningAnalyzer = EveningProtectionAnalyzer()
     private let summaryGenerator = SummaryGenerator()
+
+    /// Optional sleep manager for blocking sleep times
+    var sleepManager: SleepManager?
 
     // Category processors
     private let nonNegotiableProcessor = NonNegotiableProcessor()
@@ -222,48 +261,101 @@ extension ReshuffleEngine {
     ///   - allItems: All items on the schedule (for finding empty slots)
     func suggestResolution(newItem: ScheduleItem, conflictingItems: [ScheduleItem], allItems: [ScheduleItem] = []) -> [ConflictResolution] {
         var resolutions: [ConflictResolution] = []
+        let now = Date()
+        let calendar = Calendar.current
 
-        // Find the best slot to move the NEW item - this slot must avoid ALL conflicting items
-        // Find the latest end time among all conflicting items
+        let fmt: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "MMM d, h:mm a"
+            return f
+        }()
+
+        debugLog("═══════════════════════════════════════════════════════════")
+        debugLog("SUGGEST RESOLUTION CALLED")
+        debugLog("  Current time (now): \(fmt.string(from: now))")
+        debugLog("  New item: \"\(newItem.title)\" [\(newItem.category.displayName)]")
+        debugLog("  New item time: \(fmt.string(from: newItem.startTime)) - \(fmt.string(from: newItem.endTime))")
+        debugLog("  Conflicting items (\(conflictingItems.count)):")
+        for c in conflictingItems {
+            debugLog("    - \"\(c.title)\": \(fmt.string(from: c.startTime)) - \(fmt.string(from: c.endTime))")
+        }
+        debugLog("  All items count: \(allItems.count)")
+
+        // Helper to ensure a date is not in the past
+        func ensureNotPast(_ date: Date, label: String) -> Date {
+            guard date < now else { return date }
+            debugLog("  ⚠️ \(label) is in the past: \(fmt.string(from: date))")
+            let minutes = calendar.component(.minute, from: now)
+            let roundedMinutes = ((minutes / 15) + 1) * 15
+            var components = calendar.dateComponents([.year, .month, .day, .hour], from: now)
+            if roundedMinutes >= 60 {
+                components.hour = (components.hour ?? 0) + 1
+                components.minute = 0
+            } else {
+                components.minute = roundedMinutes
+            }
+            let result = calendar.date(from: components) ?? now
+            debugLog("    → Adjusted to: \(fmt.string(from: result))")
+            return result
+        }
+
+        // Find the best slot to move the NEW item
         let latestConflictEnd = conflictingItems.map { $0.endTime }.max() ?? newItem.endTime
-        let slotForNewItem = findNextAvailableSlot(
+        debugLog("  Finding slot for NEW item after: \(fmt.string(from: latestConflictEnd))")
+        var slotForNewItem = findNextAvailableSlot(
             after: latestConflictEnd,
             duration: newItem.durationMinutes,
             on: newItem.scheduledDate,
             allItems: allItems,
             excluding: [newItem] + conflictingItems
         )
+        slotForNewItem = ensureNotPast(slotForNewItem, label: "slotForNewItem")
+        debugLog("  → Final slot for new item: \(fmt.string(from: slotForNewItem))")
+
+        // Track slots we've already assigned to avoid double-booking
+        var assignedSlots: [(start: Date, end: Date)] = []
 
         for conflicting in conflictingItems {
             let resolution: ConflictResolution
 
-            // Find best slot to move THIS conflicting item (after new item ends)
-            let slotForConflicting = findNextAvailableSlot(
+            debugLog("───────────────────────────────────────────────────────────")
+            debugLog("  Finding slot for CONFLICTING: \"\(conflicting.title)\"")
+            debugLog("    Duration: \(conflicting.durationMinutes) min")
+            debugLog("    Already assigned slots: \(assignedSlots.count)")
+
+            // Find best slot - exclude ALL conflicting items and avoid assigned slots
+            var slotForConflicting = findNextAvailableSlotForConflicting(
                 after: newItem.endTime,
                 duration: conflicting.durationMinutes,
                 on: conflicting.scheduledDate,
                 allItems: allItems,
-                excluding: [newItem, conflicting]
+                excluding: [newItem] + conflictingItems,
+                avoidSlots: assignedSlots
             )
+            debugLog("    Raw slot returned: \(fmt.string(from: slotForConflicting))")
+            slotForConflicting = ensureNotPast(slotForConflicting, label: "slotForConflicting")
+            debugLog("    FINAL slot: \(fmt.string(from: slotForConflicting))")
 
-            // If the new item is non-negotiable, always give the user the choice
+            // Track this slot
+            let slotEnd = calendar.date(byAdding: .minute, value: conflicting.durationMinutes, to: slotForConflicting) ?? slotForConflicting
+            assignedSlots.append((start: slotForConflicting, end: slotEnd))
+
+            // Determine resolution based on priority
             if newItem.category == .nonNegotiable {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .userDecision(moveConflictingTo: slotForConflicting, moveNewTo: slotForNewItem),
-                    reason: "\"\(newItem.title)\" is non-negotiable and conflicts with \"\(conflicting.title)\""
+                    suggestion: .moveConflicting(to: slotForConflicting),
+                    reason: "\"\(newItem.title)\" is non-negotiable - moving \"\(conflicting.title)\" to next available slot"
                 )
             } else if newItem.category.priority < conflicting.category.priority {
-                // New item has higher priority - suggest moving the conflicting item
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
                     suggestion: .moveConflicting(to: slotForConflicting),
-                    reason: "\"\(newItem.title)\" (\(newItem.category.displayName)) has higher priority than \"\(conflicting.title)\" (\(conflicting.category.displayName))"
+                    reason: "\"\(newItem.title)\" (\(newItem.category.displayName)) has higher priority"
                 )
             } else if newItem.category.priority > conflicting.category.priority {
-                // Existing item has higher priority - suggest moving the new item
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
@@ -271,7 +363,6 @@ extension ReshuffleEngine {
                     reason: "\"\(conflicting.title)\" (\(conflicting.category.displayName)) has higher priority"
                 )
             } else {
-                // Same priority - let user decide
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
@@ -283,7 +374,86 @@ extension ReshuffleEngine {
             resolutions.append(resolution)
         }
 
+        debugLog("═══════════════════════════════════════════════════════════")
         return resolutions
+    }
+
+    /// Find slot for a conflicting item, also avoiding already-assigned slots
+    private func findNextAvailableSlotForConflicting(
+        after time: Date,
+        duration: Int,
+        on date: Date,
+        allItems: [ScheduleItem],
+        excluding: [ScheduleItem],
+        avoidSlots: [(start: Date, end: Date)]
+    ) -> Date {
+        let now = Date()
+        let calendar = Calendar.current
+
+        // Never start looking before current time
+        var searchStartTime = time
+        if searchStartTime < now {
+            let minutes = calendar.component(.minute, from: now)
+            let roundedMinutes = ((minutes / 15) + 1) * 15
+            var components = calendar.dateComponents([.year, .month, .day, .hour], from: now)
+            if roundedMinutes >= 60 {
+                components.hour = (components.hour ?? 0) + 1
+                components.minute = 0
+            } else {
+                components.minute = roundedMinutes
+            }
+            searchStartTime = calendar.date(from: components) ?? now
+        }
+
+        var candidateTime = findNextAvailableSlot(
+            after: searchStartTime,
+            duration: duration,
+            on: date,
+            allItems: allItems,
+            excluding: excluding
+        )
+
+        // Check if this slot overlaps with any already-assigned slot
+        var iterations = 0
+        while iterations < 20 {
+            iterations += 1
+            let candidateEnd = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
+
+            var hasOverlap = false
+            for assigned in avoidSlots {
+                if candidateTime < assigned.end && candidateEnd > assigned.start {
+                    candidateTime = assigned.end
+                    hasOverlap = true
+                    break
+                }
+            }
+
+            if !hasOverlap { break }
+
+            candidateTime = findNextAvailableSlot(
+                after: candidateTime,
+                duration: duration,
+                on: date,
+                allItems: allItems,
+                excluding: excluding
+            )
+        }
+
+        // Final check: never return a past time
+        if candidateTime < now {
+            let minutes = calendar.component(.minute, from: now)
+            let roundedMinutes = ((minutes / 15) + 1) * 15
+            var components = calendar.dateComponents([.year, .month, .day, .hour], from: now)
+            if roundedMinutes >= 60 {
+                components.hour = (components.hour ?? 0) + 1
+                components.minute = 0
+            } else {
+                components.minute = roundedMinutes
+            }
+            candidateTime = calendar.date(from: components) ?? now
+        }
+
+        return candidateTime
     }
 
     /// Find the next available time slot that doesn't conflict with existing items
@@ -296,25 +466,139 @@ extension ReshuffleEngine {
     ) -> Date {
         let calendar = Calendar.current
         let minHour = 6
-        let maxHour = 22
         let now = Date()
 
-        let timeFormatter: DateFormatter = {
+        let fmt: DateFormatter = {
             let f = DateFormatter()
-            f.dateFormat = "h:mm a"
+            f.dateFormat = "MMM d, h:mm a"
             return f
         }()
 
-        // Start from the given time
         var candidateTime = time
 
-        os_log("Looking for %dmin slot after %{public}@", log: slotFinderLog, type: .debug, duration, timeFormatter.string(from: time))
-        os_log("Total items passed: %d", log: slotFinderLog, type: .debug, allItems.count)
-        os_log("Excluding %d items: %{public}@", log: slotFinderLog, type: .debug, excluding.count, excluding.map { $0.title }.joined(separator: ", "))
+        debugLog("  ┌─ findNextAvailableSlot ─────────────────────────────────")
+        debugLog("  │ Input 'after': \(fmt.string(from: time))")
+        debugLog("  │ Input 'on date': \(fmt.string(from: date))")
+        debugLog("  │ Duration: \(duration) min")
+        debugLog("  │ Current time (now): \(fmt.string(from: now))")
 
-        // Don't schedule in the past (for today)
-        if date.isToday && candidateTime < now {
-            // Round up to next 15-minute interval
+        // Helper to ensure candidateTime is not in the past
+        func ensureNotInPast() {
+            if candidateTime < now {
+                debugLog("  │ ⚠️ candidateTime \(fmt.string(from: candidateTime)) is in PAST")
+                let minutes = calendar.component(.minute, from: now)
+                let roundedMinutes = ((minutes / 15) + 1) * 15
+                var components = calendar.dateComponents([.year, .month, .day, .hour], from: now)
+                if roundedMinutes >= 60 {
+                    components.hour = (components.hour ?? 0) + 1
+                    components.minute = 0
+                } else {
+                    components.minute = roundedMinutes
+                }
+                candidateTime = calendar.date(from: components) ?? now
+                debugLog("  │ ✓ Adjusted to: \(fmt.string(from: candidateTime))")
+            }
+        }
+
+        // ALWAYS check if candidate is in the past first
+        ensureNotInPast()
+
+        // Don't schedule before 6 AM
+        if candidateTime.hour < minHour {
+            debugLog("  │ Hour \(candidateTime.hour) < minHour \(minHour), setting to 6 AM")
+            candidateTime = date.startOfDay.withTime(hour: minHour)
+            debugLog("  │ Set to: \(fmt.string(from: candidateTime))")
+            // Re-check for past time!
+            ensureNotInPast()
+        }
+
+        // Check sleep blocking
+        if let sleepRange = sleepManager?.getSleepBlockedRange(for: candidateTime) {
+            if candidateTime >= sleepRange.bufferStart && candidateTime < sleepRange.wakeTime {
+                debugLog("  │ In sleep time, jumping to wake: \(fmt.string(from: sleepRange.wakeTime))")
+                candidateTime = sleepRange.wakeTime
+                ensureNotInPast()
+            }
+        }
+
+        // Get items for the same day, excluding the ones we're moving
+        // Also exclude items that have already ended (they're in the past)
+        let excludeIds = Set(excluding.map { $0.id })
+        let dayItems = allItems
+            .filter { item in
+                item.scheduledDate.isSameDay(as: date) &&
+                !excludeIds.contains(item.id) &&
+                !item.isCompleted &&
+                item.endTime > now  // Only consider items that haven't ended
+            }
+            .sorted { $0.startTime < $1.startTime }
+
+        debugLog("  │ Day items to check (\(dayItems.count)):")
+        for item in dayItems {
+            debugLog("  │   - \(item.title): \(fmt.string(from: item.startTime)) - \(fmt.string(from: item.endTime))")
+        }
+
+        // Try to find a slot
+        var iteration = 0
+        var foundValidSlot = false
+
+        while iteration < 100 && !foundValidSlot {
+            iteration += 1
+            let candidateEnd = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
+
+            debugLog("  │ Iteration \(iteration): Trying \(fmt.string(from: candidateTime)) - \(fmt.string(from: candidateEnd))")
+
+            // Find ALL conflicts and get the latest end time
+            var latestConflictEnd: Date? = nil
+            for item in dayItems {
+                let overlaps = candidateTime < item.endTime && candidateEnd > item.startTime
+                if overlaps {
+                    debugLog("  │   CONFLICT with \(item.title)")
+                    if latestConflictEnd == nil || item.endTime > latestConflictEnd! {
+                        latestConflictEnd = item.endTime
+                    }
+                }
+            }
+
+            if let latestEnd = latestConflictEnd {
+                debugLog("  │   Moving past all conflicts to: \(fmt.string(from: latestEnd))")
+                candidateTime = latestEnd
+                ensureNotInPast()
+            } else {
+                // No conflicts - verify the slot is truly free
+                let finalEnd = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
+                let stillHasConflict = dayItems.contains { item in
+                    candidateTime < item.endTime && finalEnd > item.startTime
+                }
+                if !stillHasConflict {
+                    debugLog("  │ ✓ FOUND free slot: \(fmt.string(from: candidateTime))")
+                    foundValidSlot = true
+                }
+            }
+
+            // If we've moved to next day, search that day properly
+            if !foundValidSlot && !candidateTime.isSameDay(as: date) {
+                debugLog("  │ Moved to next day, searching next day...")
+                if let nextDay = calendar.date(byAdding: .day, value: 1, to: date) {
+                    // Recursively search the next day (up to 7 days out to prevent infinite recursion)
+                    let daysDiff = calendar.dateComponents([.day], from: date, to: nextDay).day ?? 1
+                    if daysDiff <= 7 {
+                        return findNextAvailableSlot(
+                            after: nextDay.startOfDay.withTime(hour: minHour),
+                            duration: duration,
+                            on: nextDay,
+                            allItems: allItems,
+                            excluding: excluding
+                        )
+                    }
+                }
+                break
+            }
+        }
+
+        // FINAL SAFETY: Never return a past time
+        if candidateTime < now {
+            debugLog("  │ 🚨 FINAL SAFETY: Still in past!")
             let minutes = calendar.component(.minute, from: now)
             let roundedMinutes = ((minutes / 15) + 1) * 15
             var components = calendar.dateComponents([.year, .month, .day, .hour], from: now)
@@ -325,66 +609,10 @@ extension ReshuffleEngine {
                 components.minute = roundedMinutes
             }
             candidateTime = calendar.date(from: components) ?? now
-            os_log("Adjusted for past time, now starting at %{public}@", log: slotFinderLog, type: .debug, timeFormatter.string(from: candidateTime))
+            debugLog("  │ ✓ FINAL adjusted to: \(fmt.string(from: candidateTime))")
         }
 
-        // Don't schedule before 6 AM
-        if candidateTime.hour < minHour {
-            candidateTime = date.startOfDay.withTime(hour: minHour)
-        }
-
-        // Get items for the same day, excluding the ones we're moving
-        let excludeIds = Set(excluding.map { $0.id })
-        let dayItems = allItems
-            .filter { $0.scheduledDate.isSameDay(as: date) && !excludeIds.contains($0.id) && !$0.isCompleted }
-            .sorted { $0.startTime < $1.startTime }
-
-        os_log("Day items to check (%d):", log: slotFinderLog, type: .debug, dayItems.count)
-        for item in dayItems {
-            os_log("  - %{public}@ [%{public}@]: %{public}@ - %{public}@", log: slotFinderLog, type: .debug, item.title, item.category.displayName, timeFormatter.string(from: item.startTime), timeFormatter.string(from: item.endTime))
-        }
-
-        // Try to find a slot that doesn't overlap with any existing item
-        var iteration = 0
-        for _ in 0..<50 { // Max iterations to prevent infinite loop
-            iteration += 1
-            // Recalculate end time based on current candidate start
-            let candidateEnd = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
-            var hasConflict = false
-
-            os_log("Iteration %d: Trying %{public}@ - %{public}@", log: slotFinderLog, type: .debug, iteration, timeFormatter.string(from: candidateTime), timeFormatter.string(from: candidateEnd))
-
-            for item in dayItems {
-                // Check if candidate overlaps with this item
-                let overlaps = candidateTime < item.endTime && candidateEnd > item.startTime
-                if overlaps {
-                    // Conflict found - move candidate to after this item
-                    os_log("  CONFLICT with %{public}@ (%{public}@ - %{public}@)", log: slotFinderLog, type: .debug, item.title, timeFormatter.string(from: item.startTime), timeFormatter.string(from: item.endTime))
-                    os_log("  Moving candidate to %{public}@", log: slotFinderLog, type: .debug, timeFormatter.string(from: item.endTime))
-                    candidateTime = item.endTime
-                    hasConflict = true
-                    break
-                }
-            }
-
-            if !hasConflict {
-                os_log("FOUND free slot: %{public}@", log: slotFinderLog, type: .info, timeFormatter.string(from: candidateTime))
-                break
-            }
-
-            // Check if the task would end past the allowed window (11 PM = hour 23)
-            let candidateEndCheck = calendar.date(byAdding: .minute, value: duration, to: candidateTime) ?? candidateTime
-            if candidateEndCheck.hour >= 23 || (candidateEndCheck.hour < minHour && candidateEndCheck.hour > 0) {
-                // Task would end too late, move to next day
-                os_log("Task would end at %{public}@ (too late), moving to next day", log: slotFinderLog, type: .debug, timeFormatter.string(from: candidateEndCheck))
-                if let nextDay = calendar.date(byAdding: .day, value: 1, to: date) {
-                    return nextDay.startOfDay.withTime(hour: minHour)
-                }
-                break
-            }
-        }
-
-        os_log("FINAL RESULT: %{public}@", log: slotFinderLog, type: .info, timeFormatter.string(from: candidateTime))
+        debugLog("  └─ RETURNING: \(fmt.string(from: candidateTime))")
         return candidateTime
     }
 }

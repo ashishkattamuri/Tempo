@@ -8,6 +8,7 @@ struct ScheduleView: View {
     let onAddTask: () -> Void
     let onEditTask: (ScheduleItem) -> Void
     let onReshuffle: () -> Void
+    var onSettings: (() -> Void)? = nil
 
     @Query private var allItems: [ScheduleItem]
     @State private var showingDatePicker = false
@@ -29,6 +30,90 @@ struct ScheduleView: View {
         allItems
             .filter { $0.scheduledDate.isSameDay(as: selectedDate) }
             .sorted { $0.startTime < $1.startTime }
+    }
+
+    /// Calculate layout info for overlapping tasks (side-by-side display)
+    private var taskLayoutInfo: [UUID: (column: Int, totalColumns: Int)] {
+        let items = itemsForSelectedDate
+        guard !items.isEmpty else { return [:] }
+
+        var layoutInfo: [UUID: (column: Int, totalColumns: Int)] = [:]
+        var overlapGroups: [[ScheduleItem]] = []
+
+        // Group overlapping items
+        for item in items {
+            var addedToGroup = false
+            for i in 0..<overlapGroups.count {
+                // Check if this item overlaps with any item in the group
+                let groupOverlaps = overlapGroups[i].contains { existing in
+                    item.startTime < existing.endTime && item.endTime > existing.startTime
+                }
+                if groupOverlaps {
+                    overlapGroups[i].append(item)
+                    addedToGroup = true
+                    break
+                }
+            }
+            if !addedToGroup {
+                overlapGroups.append([item])
+            }
+        }
+
+        // Merge groups that have overlapping items
+        var mergedGroups: [[ScheduleItem]] = []
+        for group in overlapGroups {
+            var merged = false
+            for i in 0..<mergedGroups.count {
+                let hasOverlap = group.contains { item in
+                    mergedGroups[i].contains { existing in
+                        item.startTime < existing.endTime && item.endTime > existing.startTime
+                    }
+                }
+                if hasOverlap {
+                    mergedGroups[i].append(contentsOf: group)
+                    merged = true
+                    break
+                }
+            }
+            if !merged {
+                mergedGroups.append(group)
+            }
+        }
+
+        // Assign columns within each group
+        for group in mergedGroups {
+            let sortedGroup = group.sorted { $0.startTime < $1.startTime }
+            var columns: [[ScheduleItem]] = []
+
+            for item in sortedGroup {
+                var placed = false
+                for colIndex in 0..<columns.count {
+                    // Check if item can fit in this column (no overlap with last item in column)
+                    if let lastInColumn = columns[colIndex].last {
+                        if item.startTime >= lastInColumn.endTime {
+                            columns[colIndex].append(item)
+                            layoutInfo[item.id] = (column: colIndex, totalColumns: 0) // totalColumns set later
+                            placed = true
+                            break
+                        }
+                    }
+                }
+                if !placed {
+                    columns.append([item])
+                    layoutInfo[item.id] = (column: columns.count - 1, totalColumns: 0)
+                }
+            }
+
+            // Update totalColumns for all items in this group
+            let totalCols = columns.count
+            for item in sortedGroup {
+                if let info = layoutInfo[item.id] {
+                    layoutInfo[item.id] = (column: info.column, totalColumns: totalCols)
+                }
+            }
+        }
+
+        return layoutInfo
     }
 
     private var hasIssues: Bool {
@@ -62,6 +147,14 @@ struct ScheduleView: View {
         .navigationTitle("Tempo")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                if let onSettings = onSettings {
+                    Button(action: onSettings) {
+                        Image(systemName: "gearshape")
+                    }
+                }
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: {
                     selectedSlotTime = nil
@@ -324,12 +417,20 @@ struct ScheduleView: View {
                         .offset(x: 12, y: yPositionFromTime(gap.start) + 10)
                 }
 
-                // Task blocks - positioned absolutely
+                // Task blocks - positioned absolutely with side-by-side for overlaps
                 ForEach(itemsForSelectedDate) { item in
+                    let layout = taskLayoutInfo[item.id] ?? (column: 0, totalColumns: 1)
+                    let baseWidth = taskAreaWidth - 20
+                    let itemWidth = layout.totalColumns > 1 ? (baseWidth - CGFloat(layout.totalColumns - 1) * 4) / CGFloat(layout.totalColumns) : baseWidth
+                    let xOffset: CGFloat = 12 + CGFloat(layout.column) * (itemWidth + 4)
+                    // Height exactly proportional to duration - no adjustments
+                    let itemHeight = CGFloat(item.durationMinutes) / 60.0 * hourHeight
+
                     taskCard(for: item)
-                        .frame(width: taskAreaWidth - 20)
-                        .frame(height: max(60, CGFloat(item.durationMinutes) / 60.0 * hourHeight - 8))
-                        .offset(x: 12, y: yPositionFromTime(item.startTime) + 4)
+                        .frame(width: itemWidth)
+                        .frame(height: itemHeight)
+                        .clipped() // Clip any overflow from internal padding
+                        .offset(x: xOffset, y: yPositionFromTime(item.startTime))
                 }
 
                 // Current time indicator
@@ -466,81 +567,116 @@ struct ScheduleView: View {
     private func taskCard(for item: ScheduleItem) -> some View {
         let isInProgress = selectedDate.isToday && item.startTime <= Date() && item.endTime > Date()
         let remainingMinutes = isInProgress ? Int(item.endTime.timeIntervalSince(Date()) / 60) : nil
+        let isCompact = item.durationMinutes <= 30
 
         return Button(action: {
             selectedItem = item
             showingTaskDetail = true
         }) {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .center, spacing: isCompact ? 6 : 10) {
                 // Duration bar on left (spans full height)
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(
-                        LinearGradient(
-                            colors: [item.category.color, item.category.color.opacity(0.2)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: 5)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(item.category.color)
+                    .frame(width: 4)
 
-                // Circular icon
-                ZStack {
-                    Circle()
-                        .fill(item.category.color.opacity(0.15))
-                        .frame(width: 40, height: 40)
+                // Circular icon - smaller for compact view
+                if !isCompact {
+                    ZStack {
+                        Circle()
+                            .fill(item.category.color.opacity(0.15))
+                            .frame(width: 40, height: 40)
 
-                    Image(systemName: item.category.iconName)
-                        .font(.system(size: 16))
-                        .foregroundColor(item.category.color)
+                        Image(systemName: item.category.iconName)
+                            .font(.system(size: 16))
+                            .foregroundColor(item.category.color)
+                    }
                 }
 
-                // Content
-                VStack(alignment: .leading, spacing: 3) {
-                    if let remaining = remainingMinutes {
-                        Text("\(remaining) min remaining")
+                // Content - simplified for compact view
+                if isCompact {
+                    // Compact: single line with title and time
+                    HStack(spacing: 6) {
+                        Image(systemName: item.category.iconName)
+                            .font(.system(size: 12))
+                            .foregroundColor(item.category.color)
+
+                        Text(item.title)
                             .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.accentColor)
-                    } else {
+                            .fontWeight(.semibold)
+                            .foregroundColor(item.isCompleted ? .secondary : .primary)
+                            .strikethrough(item.isCompleted)
+                            .lineLimit(1)
+
+                        Spacer()
+
                         Text(formatTimeRange(item))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Text(item.title)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(item.isCompleted ? .secondary : .primary)
-                        .strikethrough(item.isCompleted)
-                        .lineLimit(3)
-
-                    if item.durationMinutes >= 60 {
-                        Text("\(item.durationMinutes) min")
                             .font(.caption2)
                             .foregroundColor(.secondary)
+
+                        // Checkbox - smaller for compact view
+                        Button(action: { toggleCompletion(item) }) {
+                            Circle()
+                                .stroke(item.isCompleted ? Color.green : item.category.color, lineWidth: 1.5)
+                                .frame(width: 18, height: 18)
+                                .overlay(
+                                    item.isCompleted ?
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(.green)
+                                    : nil
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
-                }
+                } else {
+                    // Full view
+                    VStack(alignment: .leading, spacing: 3) {
+                        if let remaining = remainingMinutes {
+                            Text("\(remaining) min remaining")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.accentColor)
+                        } else {
+                            Text(formatTimeRange(item))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
 
-                Spacer()
+                        Text(item.title)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(item.isCompleted ? .secondary : .primary)
+                            .strikethrough(item.isCompleted)
+                            .lineLimit(3)
 
-                // Checkbox
-                Button(action: { toggleCompletion(item) }) {
-                    Circle()
-                        .stroke(item.isCompleted ? Color.green : item.category.color, lineWidth: 2)
-                        .frame(width: 24, height: 24)
-                        .overlay(
-                            item.isCompleted ?
-                            Image(systemName: "checkmark")
-                                .font(.caption2.bold())
-                                .foregroundColor(.green)
-                            : nil
-                        )
+                        if item.durationMinutes >= 60 {
+                            Text("\(item.durationMinutes) min")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    // Checkbox - only in full view
+                    Button(action: { toggleCompletion(item) }) {
+                        Circle()
+                            .stroke(item.isCompleted ? Color.green : item.category.color, lineWidth: 2)
+                            .frame(width: 24, height: 24)
+                            .overlay(
+                                item.isCompleted ?
+                                Image(systemName: "checkmark")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.green)
+                                : nil
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.horizontal, isCompact ? 6 : 10)
+            .padding(.vertical, isCompact ? 4 : 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isCompact ? .center : .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(item.category.color.opacity(item.isCompleted ? 0.05 : 0.08))
@@ -642,6 +778,8 @@ struct ScheduleView: View {
             // Find and move the conflicting item
             if let conflictingItem = allItems.first(where: { $0.id == resolution.conflictingItem.id }) {
                 conflictingItem.startTime = newTime
+                // CRITICAL: Also update scheduledDate if moving to a different day
+                conflictingItem.scheduledDate = Calendar.current.startOfDay(for: newTime)
                 conflictingItem.touch()
                 try? modelContext.save()
             }
@@ -651,6 +789,8 @@ struct ScheduleView: View {
             if let newItemId = savedItem?.id,
                let newItem = allItems.first(where: { $0.id == newItemId }) {
                 newItem.startTime = newTime
+                // CRITICAL: Also update scheduledDate if moving to a different day
+                newItem.scheduledDate = Calendar.current.startOfDay(for: newTime)
                 newItem.touch()
                 try? modelContext.save()
             }
@@ -715,11 +855,12 @@ struct ScheduleView: View {
     }
 
     private func fetchFreshItems(for date: Date) -> [ScheduleItem] {
+        // Fetch items for a week to ensure we see moved items on future days
         let startOfDay = date.startOfDay
-        let endOfDay = date.endOfDay
+        let endOfWeek = Calendar.current.date(byAdding: .day, value: 7, to: date)?.endOfDay ?? date.endOfDay
 
         let predicate = #Predicate<ScheduleItem> { item in
-            item.scheduledDate >= startOfDay && item.scheduledDate <= endOfDay
+            item.scheduledDate >= startOfDay && item.scheduledDate <= endOfWeek
         }
 
         let descriptor = FetchDescriptor<ScheduleItem>(
@@ -888,6 +1029,21 @@ struct ConflictResolutionSheet: View {
         return formatter
     }()
 
+    private let dateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, h:mm a"
+        return formatter
+    }()
+
+    /// Format time, showing date if it's not today
+    private func formatTime(_ date: Date) -> String {
+        if Calendar.current.isDateInToday(date) {
+            return timeFormatter.string(from: date)
+        } else {
+            return dateTimeFormatter.string(from: date)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -997,7 +1153,7 @@ struct ConflictResolutionSheet: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(timeFormatter.string(from: newTime))")
+                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(newTime))")
                         }
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -1029,7 +1185,7 @@ struct ConflictResolutionSheet: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.right")
-                            Text("Move new task to \(timeFormatter.string(from: newTime))")
+                            Text("Move new task to \(formatTime(newTime))")
                         }
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -1046,7 +1202,7 @@ struct ConflictResolutionSheet: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(timeFormatter.string(from: moveConflictingTo))")
+                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(moveConflictingTo))")
                         }
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -1062,7 +1218,7 @@ struct ConflictResolutionSheet: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.newItem.title)\" to \(timeFormatter.string(from: moveNewTo))")
+                            Text("Move \"\(resolution.newItem.title)\" to \(formatTime(moveNewTo))")
                         }
                         .font(.subheadline)
                         .foregroundColor(.accentColor)

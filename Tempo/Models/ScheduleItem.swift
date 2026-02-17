@@ -39,6 +39,35 @@ final class ScheduleItem {
     /// Whether this is a gentle/low-energy task (for evening protection)
     var isGentleTask: Bool
 
+    // MARK: - Recurrence Properties
+
+    /// Whether this task recurs on specific days
+    var isRecurring: Bool
+
+    /// Days of week this task recurs (0=Sunday, 1=Monday, ..., 6=Saturday)
+    /// Stored as comma-separated string for SwiftData compatibility
+    var recurrenceDaysRaw: String?
+
+    /// Optional end date for the recurrence
+    var recurrenceEndDate: Date?
+
+    /// ID of the parent recurring task (for instances)
+    var parentTaskId: UUID?
+
+    /// Whether this is an instance generated from a recurring task
+    var isRecurrenceInstance: Bool
+
+    // MARK: - Compensation Properties
+
+    /// Minutes of compensation debt (for optional goals that were deferred)
+    var compensationDebtMinutes: Int
+
+    /// Whether this is a makeup session for a deferred task
+    var isCompensationTask: Bool
+
+    /// Links to the original deferred task
+    var originalTaskId: UUID?
+
     /// Creation timestamp
     var createdAt: Date
 
@@ -84,6 +113,40 @@ final class ScheduleItem {
         return max(0, durationMinutes - min)
     }
 
+    /// Days of week this task recurs as an array
+    var recurrenceDays: [Int] {
+        get {
+            guard let raw = recurrenceDaysRaw, !raw.isEmpty else { return [] }
+            return raw.split(separator: ",").compactMap { Int($0) }
+        }
+        set {
+            if newValue.isEmpty {
+                recurrenceDaysRaw = nil
+            } else {
+                recurrenceDaysRaw = newValue.map(String.init).joined(separator: ",")
+            }
+        }
+    }
+
+    /// Human-readable recurrence description
+    var recurrenceDescription: String? {
+        guard isRecurring, !recurrenceDays.isEmpty else { return nil }
+
+        let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let sortedDays = recurrenceDays.sorted()
+
+        // Check for common patterns
+        if sortedDays == [1, 2, 3, 4, 5] {
+            return "Weekdays"
+        } else if sortedDays == [0, 6] {
+            return "Weekends"
+        } else if sortedDays == [0, 1, 2, 3, 4, 5, 6] {
+            return "Every day"
+        } else {
+            return sortedDays.map { dayNames[$0] }.joined(separator: ", ")
+        }
+    }
+
     // MARK: - Initialization
 
     init(
@@ -97,7 +160,15 @@ final class ScheduleItem {
         isCompleted: Bool = false,
         scheduledDate: Date? = nil,
         isEveningTask: Bool = false,
-        isGentleTask: Bool = false
+        isGentleTask: Bool = false,
+        isRecurring: Bool = false,
+        recurrenceDays: [Int] = [],
+        recurrenceEndDate: Date? = nil,
+        parentTaskId: UUID? = nil,
+        isRecurrenceInstance: Bool = false,
+        compensationDebtMinutes: Int = 0,
+        isCompensationTask: Bool = false,
+        originalTaskId: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -110,6 +181,14 @@ final class ScheduleItem {
         self.scheduledDate = scheduledDate ?? Calendar.current.startOfDay(for: startTime)
         self.isEveningTask = isEveningTask
         self.isGentleTask = isGentleTask
+        self.isRecurring = isRecurring
+        self.recurrenceDaysRaw = recurrenceDays.isEmpty ? nil : recurrenceDays.map(String.init).joined(separator: ",")
+        self.recurrenceEndDate = recurrenceEndDate
+        self.parentTaskId = parentTaskId
+        self.isRecurrenceInstance = isRecurrenceInstance
+        self.compensationDebtMinutes = compensationDebtMinutes
+        self.isCompensationTask = isCompensationTask
+        self.originalTaskId = originalTaskId
         self.createdAt = Date()
         self.updatedAt = Date()
     }
@@ -123,7 +202,8 @@ final class ScheduleItem {
         startTime: Date? = nil,
         durationMinutes: Int? = nil,
         minimumDurationMinutes: Int?? = nil,
-        notes: String?? = nil
+        notes: String?? = nil,
+        scheduledDate: Date? = nil
     ) -> ScheduleItem {
         ScheduleItem(
             id: UUID(), // New ID for the copy
@@ -134,9 +214,36 @@ final class ScheduleItem {
             minimumDurationMinutes: minimumDurationMinutes ?? self.minimumDurationMinutes,
             notes: notes ?? self.notes,
             isCompleted: false,
-            scheduledDate: self.scheduledDate,
+            scheduledDate: scheduledDate ?? self.scheduledDate,
             isEveningTask: self.isEveningTask,
             isGentleTask: self.isGentleTask
+        )
+    }
+
+    /// Creates a recurrence instance for a specific date
+    func createRecurrenceInstance(for date: Date) -> ScheduleItem {
+        let calendar = Calendar.current
+        // Combine the target date with the original time
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: startTime)
+        var newStartComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        newStartComponents.hour = timeComponents.hour
+        newStartComponents.minute = timeComponents.minute
+        let newStartTime = calendar.date(from: newStartComponents) ?? date
+
+        return ScheduleItem(
+            title: title,
+            category: category,
+            startTime: newStartTime,
+            durationMinutes: durationMinutes,
+            minimumDurationMinutes: minimumDurationMinutes,
+            notes: notes,
+            isCompleted: false,
+            scheduledDate: calendar.startOfDay(for: date),
+            isEveningTask: isEveningTask,
+            isGentleTask: isGentleTask,
+            isRecurring: false,
+            parentTaskId: id,
+            isRecurrenceInstance: true
         )
     }
 

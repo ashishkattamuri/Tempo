@@ -8,10 +8,14 @@ private let conflictLog = OSLog(subsystem: "com.tempo.app", category: "ConflictR
 /// Manages navigation between schedule view and other screens.
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sleepManager: SleepManager
+    @EnvironmentObject private var compensationTracker: CompensationTracker
     @Query private var allItems: [ScheduleItem]
     @State private var selectedDate = Date()
     @State private var showingTaskEdit = false
     @State private var showingReshuffle = false
+    @State private var showingSettings = false
+    @State private var showingCompensation = false
     @State private var editingItem: ScheduleItem?
 
     // Conflict detection state
@@ -20,7 +24,7 @@ struct ContentView: View {
     @State private var conflictResolutions: [ConflictResolution] = []
     @State private var savedItem: ScheduleItem?
 
-    private let reshuffleEngine = ReshuffleEngine()
+    @State private var reshuffleEngine = ReshuffleEngine()
 
     var body: some View {
         NavigationStack {
@@ -36,6 +40,9 @@ struct ContentView: View {
                 },
                 onReshuffle: {
                     showingReshuffle = true
+                },
+                onSettings: {
+                    showingSettings = true
                 }
             )
             .sheet(isPresented: $showingTaskEdit) {
@@ -87,7 +94,30 @@ struct ContentView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showingSettings) {
+                NavigationStack {
+                    SettingsMenuView(
+                        sleepManager: sleepManager,
+                        compensationTracker: compensationTracker,
+                        onDismiss: { showingSettings = false }
+                    )
+                }
+            }
+            .sheet(isPresented: $showingCompensation) {
+                CompensationView(compensationTracker: compensationTracker)
+            }
+            .onAppear {
+                // Wire up the sleep manager to the reshuffle engine
+                reshuffleEngine.sleepManager = sleepManager
+            }
         }
+    }
+
+    // MARK: - Settings Access
+
+    /// Presents the settings view - can be triggered from ScheduleView
+    func showSettingsView() {
+        showingSettings = true
     }
 
     // MARK: - Conflict Detection
@@ -123,6 +153,8 @@ struct ContentView: View {
             // Find and move the conflicting item
             if let conflictingItem = allItems.first(where: { $0.id == resolution.conflictingItem.id }) {
                 conflictingItem.startTime = newTime
+                // CRITICAL: Also update scheduledDate if moving to a different day
+                conflictingItem.scheduledDate = Calendar.current.startOfDay(for: newTime)
                 conflictingItem.touch()
                 try? modelContext.save()
             }
@@ -132,6 +164,8 @@ struct ContentView: View {
             if let newItemId = savedItem?.id,
                let newItem = allItems.first(where: { $0.id == newItemId }) {
                 newItem.startTime = newTime
+                // CRITICAL: Also update scheduledDate if moving to a different day
+                newItem.scheduledDate = Calendar.current.startOfDay(for: newTime)
                 newItem.touch()
                 try? modelContext.save()
             }
@@ -196,11 +230,12 @@ struct ContentView: View {
     }
 
     private func fetchFreshItems(for date: Date) -> [ScheduleItem] {
+        // Fetch items for a week to ensure we see moved items on future days
         let startOfDay = date.startOfDay
-        let endOfDay = date.endOfDay
+        let endOfWeek = Calendar.current.date(byAdding: .day, value: 7, to: date)?.endOfDay ?? date.endOfDay
 
         let predicate = #Predicate<ScheduleItem> { item in
-            item.scheduledDate >= startOfDay && item.scheduledDate <= endOfDay
+            item.scheduledDate >= startOfDay && item.scheduledDate <= endOfWeek
         }
 
         let descriptor = FetchDescriptor<ScheduleItem>(
@@ -231,4 +266,6 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(for: ScheduleItem.self, inMemory: true)
+        .environmentObject(SleepManager())
+        .environmentObject(CompensationTracker())
 }

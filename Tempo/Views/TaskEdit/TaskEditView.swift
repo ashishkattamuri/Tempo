@@ -27,7 +27,13 @@ struct TaskEditView: View {
     @State private var scheduledDate: Date = Date()
     @State private var hasInitialized = false
 
+    // Recurrence state
+    @State private var isRecurring: Bool = false
+    @State private var recurrenceDays: [Int] = []
+    @State private var recurrenceEndDate: Date? = nil
+
     private var isEditing: Bool { item != nil }
+    private var isEditingInstance: Bool { item?.isRecurrenceInstance ?? false }
     private var isValid: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty }
 
     // Quick duration options
@@ -40,14 +46,19 @@ struct TaskEditView: View {
                     // Task name with icon
                     taskNameSection
 
+                    // Category (moved up for quick access)
+                    categorySection
+
                     // When (time picker)
                     whenSection
 
                     // How long (duration)
                     durationSection
 
-                    // Category
-                    categorySection
+                    // Recurrence (not for non-negotiables - they're usually one-time events)
+                    if category != .nonNegotiable && !isEditingInstance {
+                        recurrenceSection
+                    }
 
                     // Identity habit settings
                     if category == .identityHabit {
@@ -269,6 +280,14 @@ struct TaskEditView: View {
         .cornerRadius(16)
     }
 
+    private var recurrenceSection: some View {
+        RecurrencePicker(
+            isRecurring: $isRecurring,
+            selectedDays: $recurrenceDays,
+            endDate: $recurrenceEndDate
+        )
+    }
+
     private var identityHabitSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Identity Habit Settings")
@@ -400,6 +419,9 @@ struct TaskEditView: View {
             isGentleTask = item.isGentleTask
             selectedColor = item.category.color
             scheduledDate = item.scheduledDate
+            isRecurring = item.isRecurring
+            recurrenceDays = item.recurrenceDays
+            recurrenceEndDate = item.recurrenceEndDate
         } else if let defaultTime = defaultStartTime {
             startTime = defaultTime
             isEveningTask = defaultTime.isEvening
@@ -423,6 +445,9 @@ struct TaskEditView: View {
             existingItem.scheduledDate = scheduledDate
             existingItem.isEveningTask = isEveningTask
             existingItem.isGentleTask = isGentleTask
+            existingItem.isRecurring = isRecurring
+            existingItem.recurrenceDays = recurrenceDays
+            existingItem.recurrenceEndDate = recurrenceEndDate
             existingItem.touch()
 
             onSave(existingItem)
@@ -436,11 +461,40 @@ struct TaskEditView: View {
                 notes: notes.isEmpty ? nil : notes,
                 scheduledDate: scheduledDate,
                 isEveningTask: isEveningTask,
-                isGentleTask: isGentleTask
+                isGentleTask: isGentleTask,
+                isRecurring: isRecurring,
+                recurrenceDays: recurrenceDays,
+                recurrenceEndDate: recurrenceEndDate
             )
 
             modelContext.insert(newItem)
+
+            // Generate recurring instances if needed
+            if isRecurring && !recurrenceDays.isEmpty {
+                generateRecurringInstances(for: newItem)
+            }
+
             onSave(newItem)
+        }
+    }
+
+    /// Generates recurring task instances for the next few weeks
+    private func generateRecurringInstances(for template: ScheduleItem) {
+        let calendar = Calendar.current
+        let weeksToGenerate = 4
+
+        // Start from tomorrow
+        guard let startDate = calendar.date(byAdding: .day, value: 1, to: template.scheduledDate) else { return }
+        let endDate = recurrenceEndDate ?? calendar.date(byAdding: .weekOfYear, value: weeksToGenerate, to: startDate)!
+
+        var currentDate = startDate
+        while currentDate <= endDate {
+            let weekday = calendar.component(.weekday, from: currentDate) - 1 // Convert to 0-indexed
+            if recurrenceDays.contains(weekday) {
+                let instance = template.createRecurrenceInstance(for: currentDate)
+                modelContext.insert(instance)
+            }
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
         }
     }
 

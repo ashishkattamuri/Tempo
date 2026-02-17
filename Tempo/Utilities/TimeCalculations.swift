@@ -189,4 +189,101 @@ enum TimeCalculations {
             other.id != item.id && newSlot.overlaps(with: other)
         }
     }
+
+    // MARK: - Weekend Slot Utilities
+
+    /// Check if a date falls on a weekend (Saturday or Sunday)
+    static func isWeekend(_ date: Date) -> Bool {
+        let weekday = Calendar.current.component(.weekday, from: date)
+        return weekday == 1 || weekday == 7 // Sunday = 1, Saturday = 7
+    }
+
+    /// Find the next weekend date after the given date
+    static func nextWeekend(after date: Date) -> Date {
+        let calendar = Calendar.current
+        var checkDate = date
+
+        // Move to next day first
+        checkDate = calendar.date(byAdding: .day, value: 1, to: checkDate) ?? checkDate
+
+        // Find the next Saturday or Sunday
+        while !isWeekend(checkDate) {
+            checkDate = calendar.date(byAdding: .day, value: 1, to: checkDate) ?? checkDate
+        }
+
+        return calendar.startOfDay(for: checkDate)
+    }
+
+    /// Find weekend slots in the next N weeks
+    static func findWeekendSlots(
+        startingFrom date: Date,
+        durationMinutes: Int,
+        existingItems: [ScheduleItem],
+        weeksToSearch: Int = 2
+    ) -> [TimeSlot] {
+        let calendar = Calendar.current
+        var slots: [TimeSlot] = []
+
+        // Calculate end date
+        let endDate = calendar.date(byAdding: .weekOfYear, value: weeksToSearch, to: date) ?? date
+
+        var checkDate = date
+        while checkDate <= endDate {
+            if isWeekend(checkDate) {
+                // Get items for this day
+                let dayItems = existingItems.filter { $0.scheduledDate.isSameDay(as: checkDate) }
+
+                // Find available slots
+                let availableSlots = findAvailableSlots(
+                    on: checkDate,
+                    excluding: dayItems,
+                    startHour: 8,  // Weekends can start later
+                    endHour: Constants.dayEndHour
+                )
+
+                // Filter for slots that can fit the duration
+                let validSlots = availableSlots.filter { $0.durationMinutes >= durationMinutes }
+                slots.append(contentsOf: validSlots)
+            }
+
+            checkDate = calendar.date(byAdding: .day, value: 1, to: checkDate) ?? checkDate
+        }
+
+        return slots
+    }
+
+    /// Find available slots on a specific day with minimum duration
+    static func findAvailableSlots(
+        on date: Date,
+        existingItems: [ScheduleItem],
+        minimumDuration: Int
+    ) -> [TimeSlot] {
+        let allSlots = findAvailableSlots(on: date, excluding: existingItems)
+        return allSlots.filter { $0.durationMinutes >= minimumDuration }
+    }
+
+    /// Calculate free time on weekends in the next 2 weeks
+    static func weekendFreeMinutes(
+        startingFrom date: Date,
+        existingItems: [ScheduleItem],
+        weeksToSearch: Int = 2
+    ) -> Int {
+        let calendar = Calendar.current
+        var totalMinutes = 0
+
+        let endDate = calendar.date(byAdding: .weekOfYear, value: weeksToSearch, to: date) ?? date
+
+        var checkDate = date
+        while checkDate <= endDate {
+            if isWeekend(checkDate) {
+                let dayItems = existingItems.filter { $0.scheduledDate.isSameDay(as: checkDate) }
+                let freeSlots = findAvailableSlots(on: checkDate, excluding: dayItems, startHour: 8, endHour: 22)
+                totalMinutes += freeSlots.reduce(0) { $0 + $1.durationMinutes }
+            }
+
+            checkDate = calendar.date(byAdding: .day, value: 1, to: checkDate) ?? checkDate
+        }
+
+        return totalMinutes
+    }
 }
