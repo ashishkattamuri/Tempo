@@ -32,6 +32,11 @@ struct TaskEditView: View {
     @State private var recurrenceDays: [Int] = []
     @State private var recurrenceEndDate: Date? = nil
 
+    /// Computed frequency based on selected days (7 days = daily, otherwise weekly)
+    private var frequency: RecurrenceFrequency {
+        recurrenceDays.count == 7 ? .daily : .weekly
+    }
+
     private var isEditing: Bool { item != nil }
     private var isEditingInstance: Bool { item?.isRecurrenceInstance ?? false }
     private var isValid: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -55,8 +60,8 @@ struct TaskEditView: View {
                     // How long (duration)
                     durationSection
 
-                    // Recurrence (not for non-negotiables - they're usually one-time events)
-                    if category != .nonNegotiable && !isEditingInstance {
+                    // Recurrence (available for all task types except when editing an instance)
+                    if !isEditingInstance {
                         recurrenceSection
                     }
 
@@ -64,9 +69,6 @@ struct TaskEditView: View {
                     if category == .identityHabit {
                         identityHabitSection
                     }
-
-                    // Evening protection
-                    eveningSection
 
                     // Notes
                     notesSection
@@ -96,9 +98,6 @@ struct TaskEditView: View {
                 saveButton
             }
             .onAppear(perform: loadExistingItem)
-            .onChange(of: startTime) { _, newValue in
-                isEveningTask = newValue.isEvening
-            }
             .onChange(of: category) { _, newValue in
                 selectedColor = newValue.color
             }
@@ -330,26 +329,6 @@ struct TaskEditView: View {
         .cornerRadius(16)
     }
 
-    private var eveningSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Evening Protection")
-                .font(.headline)
-
-            Toggle("Evening task (after 6 PM)", isOn: $isEveningTask)
-
-            if isEveningTask {
-                Toggle("Gentle/low-energy activity", isOn: $isGentleTask)
-
-                Text("Gentle tasks can stay in the evening during reshuffles.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-    }
-
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Notes (optional)")
@@ -446,6 +425,8 @@ struct TaskEditView: View {
             existingItem.isEveningTask = isEveningTask
             existingItem.isGentleTask = isGentleTask
             existingItem.isRecurring = isRecurring
+            existingItem.frequency = frequency
+            existingItem.timesPerWeek = frequency == .weekly ? recurrenceDays.count : nil
             existingItem.recurrenceDays = recurrenceDays
             existingItem.recurrenceEndDate = recurrenceEndDate
             existingItem.touch()
@@ -463,6 +444,8 @@ struct TaskEditView: View {
                 isEveningTask: isEveningTask,
                 isGentleTask: isGentleTask,
                 isRecurring: isRecurring,
+                frequency: frequency,
+                timesPerWeek: frequency == .weekly ? recurrenceDays.count : nil,
                 recurrenceDays: recurrenceDays,
                 recurrenceEndDate: recurrenceEndDate
             )

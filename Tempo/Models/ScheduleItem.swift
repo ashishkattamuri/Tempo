@@ -44,6 +44,12 @@ final class ScheduleItem {
     /// Whether this task recurs on specific days
     var isRecurring: Bool
 
+    /// Frequency type: "daily" or "weekly"
+    var frequencyRawValue: String
+
+    /// Number of times per week (only used when frequency is weekly)
+    var timesPerWeek: Int?
+
     /// Days of week this task recurs (0=Sunday, 1=Monday, ..., 6=Saturday)
     /// Stored as comma-separated string for SwiftData compatibility
     var recurrenceDaysRaw: String?
@@ -83,6 +89,26 @@ final class ScheduleItem {
         set {
             categoryRawValue = newValue.rawValue
         }
+    }
+
+    /// Frequency of recurrence (daily or weekly)
+    var frequency: RecurrenceFrequency {
+        get {
+            RecurrenceFrequency(rawValue: frequencyRawValue) ?? .daily
+        }
+        set {
+            frequencyRawValue = newValue.rawValue
+        }
+    }
+
+    /// Whether this is a daily habit/goal (recurs every day)
+    var isDaily: Bool {
+        isRecurring && frequency == .daily
+    }
+
+    /// Whether this is a weekly habit/goal (X times per week)
+    var isWeekly: Bool {
+        isRecurring && frequency == .weekly
     }
 
     /// End time based on start time and duration
@@ -162,6 +188,8 @@ final class ScheduleItem {
         isEveningTask: Bool = false,
         isGentleTask: Bool = false,
         isRecurring: Bool = false,
+        frequency: RecurrenceFrequency = .daily,
+        timesPerWeek: Int? = nil,
         recurrenceDays: [Int] = [],
         recurrenceEndDate: Date? = nil,
         parentTaskId: UUID? = nil,
@@ -182,6 +210,8 @@ final class ScheduleItem {
         self.isEveningTask = isEveningTask
         self.isGentleTask = isGentleTask
         self.isRecurring = isRecurring
+        self.frequencyRawValue = frequency.rawValue
+        self.timesPerWeek = timesPerWeek
         self.recurrenceDaysRaw = recurrenceDays.isEmpty ? nil : recurrenceDays.map(String.init).joined(separator: ",")
         self.recurrenceEndDate = recurrenceEndDate
         self.parentTaskId = parentTaskId
@@ -242,6 +272,8 @@ final class ScheduleItem {
             isEveningTask: isEveningTask,
             isGentleTask: isGentleTask,
             isRecurring: false,
+            frequency: frequency,
+            timesPerWeek: timesPerWeek,
             parentTaskId: id,
             isRecurrenceInstance: true
         )

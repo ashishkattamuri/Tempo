@@ -90,6 +90,33 @@ struct ReshuffleContext {
         }
     }
 
+    /// Find a slot on a specific date (for moving tasks to different days)
+    func findSlot(forDurationMinutes minutes: Int, on targetDate: Date) -> TimeCalculations.TimeSlot? {
+        // If it's the same day as context, use existing slots
+        if targetDate.isSameDay(as: self.targetDate) {
+            return findSlot(forDurationMinutes: minutes)
+        }
+
+        // For a different day, calculate available slots for that day
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: targetDate)
+
+        // Find items scheduled for that date
+        let itemsOnDate = allItems.filter { $0.scheduledDate.isSameDay(as: targetDate) && !$0.isCompleted }
+
+        // Calculate available slots
+        let slots = TimeCalculations.findAvailableSlots(
+            on: targetDate,
+            excluding: itemsOnDate,
+            startHour: 6, // Start from 6 AM for future days
+            endHour: Constants.eveningStartHour
+        )
+
+        return slots.first { slot in
+            slot.durationMinutes >= minutes
+        }
+    }
+
     /// Check if a specific time slot is available
     func isSlotAvailable(start: Date, durationMinutes: Int) -> Bool {
         let endTime = start.addingMinutes(durationMinutes)

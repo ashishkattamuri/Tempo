@@ -4,6 +4,10 @@ import Foundation
 /// These are habits that define who the user is.
 /// Core principle: Compress but NEVER remove.
 /// "Showing up in any form counts."
+///
+/// Handling based on frequency:
+/// - Daily habits: Can only compress or skip, NEVER move (next day has it too)
+/// - Weekly (X times/week) habits: Can move to next day IF that day doesn't have the same habit
 struct IdentityHabitProcessor: CategoryProcessor {
     let category: TaskCategory = .identityHabit
 
@@ -36,7 +40,33 @@ struct IdentityHabitProcessor: CategoryProcessor {
                 compressionNeeded: compressionNeeded
             )
 
-            // Check if we need to move it too
+            // For DAILY habits: never move, only compress in place
+            if item.isDaily {
+                return Change(
+                    item: item,
+                    action: .resized(newDurationMinutes: newDuration),
+                    reason: dailyHabitMessage(savedMinutes: item.durationMinutes - newDuration)
+                )
+            }
+
+            // For WEEKLY habits: try to find a better slot on a day without this habit
+            if item.isWeekly {
+                if let newSlot = findWeeklyHabitSlot(for: item, newDuration: newDuration, in: context) {
+                    return Change(
+                        item: item,
+                        action: .movedAndResized(newStartTime: newSlot, newDurationMinutes: newDuration),
+                        reason: weeklyHabitMoveMessage(savedMinutes: item.durationMinutes - newDuration)
+                    )
+                }
+                // Cannot move - compress in place
+                return Change(
+                    item: item,
+                    action: .resized(newDurationMinutes: newDuration),
+                    reason: weeklyHabitCompressMessage(savedMinutes: item.durationMinutes - newDuration)
+                )
+            }
+
+            // Check if we need to move it (non-recurring habits)
             if let newStartTime = findBetterSlot(for: item, newDuration: newDuration, in: context) {
                 return Change(
                     item: item,
@@ -52,7 +82,34 @@ struct IdentityHabitProcessor: CategoryProcessor {
             )
         }
 
-        // Cannot compress - try to move to a better slot
+        // Cannot compress - handle based on frequency
+        if item.isDaily {
+            // Daily habits that can't compress: protect them (user must decide to skip)
+            return Change(
+                item: item,
+                action: .protected,
+                reason: "Daily habit protected - consider skipping today if needed"
+            )
+        }
+
+        if item.isWeekly {
+            // Weekly habits: try to move to a day without this habit
+            if let newSlot = findWeeklyHabitSlot(for: item, newDuration: item.durationMinutes, in: context) {
+                return Change(
+                    item: item,
+                    action: .moved(newStartTime: newSlot),
+                    reason: "Moved to a day when you don't have this habit scheduled"
+                )
+            }
+            // Cannot move - protect it
+            return Change(
+                item: item,
+                action: .protected,
+                reason: "Weekly habit protected - same habit scheduled on nearby days"
+            )
+        }
+
+        // Non-recurring habit - try to move
         if let newSlot = context.findSlot(forDurationMinutes: item.durationMinutes) {
             return Change(
                 item: item,
@@ -117,6 +174,45 @@ struct IdentityHabitProcessor: CategoryProcessor {
         return context.findSlot(forDurationMinutes: newDuration)?.start
     }
 
+    /// For weekly habits, find a slot on a day that doesn't already have this habit scheduled
+    private func findWeeklyHabitSlot(
+        for item: ScheduleItem,
+        newDuration: Int,
+        in context: ReshuffleContext
+    ) -> Date? {
+        let calendar = Calendar.current
+
+        // Check the next few days (within the same week)
+        for dayOffset in 1...6 {
+            guard let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: item.scheduledDate) else {
+                continue
+            }
+
+            // Check if this day of week is in the recurrence schedule
+            let targetWeekday = calendar.component(.weekday, from: targetDate) - 1 // 0-indexed
+            if item.recurrenceDays.contains(targetWeekday) {
+                // This day already has this habit scheduled, skip it
+                continue
+            }
+
+            // Check if we're still in the same week (don't defer to next week)
+            let itemWeek = calendar.component(.weekOfYear, from: item.scheduledDate)
+            let targetWeek = calendar.component(.weekOfYear, from: targetDate)
+            if targetWeek != itemWeek {
+                break // Don't move to next week
+            }
+
+            // Try to find a slot on this day
+            if let slot = context.findSlot(forDurationMinutes: newDuration, on: targetDate) {
+                return slot.start
+            }
+        }
+
+        return nil
+    }
+
+    // MARK: - Messages
+
     private func compassionateMessage(savedMinutes: Int) -> String {
         if savedMinutes <= 5 {
             return "Slightly adjusted, but you're still showing up"
@@ -124,6 +220,32 @@ struct IdentityHabitProcessor: CategoryProcessor {
             return "Adjusted to \(savedMinutes) minutes shorter - showing up in any form counts"
         } else {
             return "Compressed to save \(savedMinutes) min - your commitment is what matters"
+        }
+    }
+
+    private func dailyHabitMessage(savedMinutes: Int) -> String {
+        if savedMinutes <= 5 {
+            return "Daily habit adjusted slightly - you're still showing up"
+        } else if savedMinutes <= 15 {
+            return "Daily habit compressed \(savedMinutes) min - showing up every day counts"
+        } else {
+            return "Daily habit compressed \(savedMinutes) min - consistency over perfection"
+        }
+    }
+
+    private func weeklyHabitMoveMessage(savedMinutes: Int) -> String {
+        if savedMinutes <= 5 {
+            return "Moved to another day this week - still counts toward your weekly goal"
+        } else {
+            return "Moved and adjusted \(savedMinutes) min - still on track for the week"
+        }
+    }
+
+    private func weeklyHabitCompressMessage(savedMinutes: Int) -> String {
+        if savedMinutes <= 5 {
+            return "Weekly habit adjusted - keeping you on track"
+        } else {
+            return "Weekly habit compressed \(savedMinutes) min - every bit counts"
         }
     }
 }

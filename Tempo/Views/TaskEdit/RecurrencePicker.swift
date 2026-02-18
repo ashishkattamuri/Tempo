@@ -1,10 +1,16 @@
 import SwiftUI
 
-/// UI component for selecting recurrence pattern (days of week).
+/// UI component for selecting recurrence pattern (days of week) and frequency.
 struct RecurrencePicker: View {
     @Binding var isRecurring: Bool
     @Binding var selectedDays: [Int]
     @Binding var endDate: Date?
+
+    /// Computed frequency based on selected days
+    var frequency: RecurrenceFrequency {
+        // All 7 days selected = daily, otherwise weekly
+        selectedDays.count == 7 ? .daily : .weekly
+    }
 
     @State private var showEndDate = false
 
@@ -138,15 +144,31 @@ struct RecurrencePicker: View {
         let sortedDays = selectedDays.sorted()
 
         var summary: String
-        if sortedDays == [1, 2, 3, 4, 5] {
-            summary = "Repeats every weekday"
-        } else if sortedDays == [0, 6] {
-            summary = "Repeats every weekend"
-        } else if sortedDays == [0, 1, 2, 3, 4, 5, 6] {
-            summary = "Repeats every day"
+
+        if frequency == .daily {
+            if sortedDays == [1, 2, 3, 4, 5] {
+                summary = "Daily on weekdays"
+            } else if sortedDays == [0, 6] {
+                summary = "Daily on weekends"
+            } else if sortedDays == [0, 1, 2, 3, 4, 5, 6] {
+                summary = "Every day"
+            } else {
+                let dayList = sortedDays.map { dayNames[$0] }.joined(separator: ", ")
+                summary = "Daily on \(dayList)"
+            }
         } else {
-            let dayList = sortedDays.map { dayNames[$0] }.joined(separator: ", ")
-            summary = "Repeats every \(dayList)"
+            // Weekly - times per week is the number of selected days
+            let times = sortedDays.count
+            if sortedDays == [1, 2, 3, 4, 5] {
+                summary = "\(times)x per week on weekdays"
+            } else if sortedDays == [0, 6] {
+                summary = "\(times)x per week on weekends"
+            } else if sortedDays == [0, 1, 2, 3, 4, 5, 6] {
+                summary = "\(times)x per week (any day)"
+            } else {
+                let dayList = sortedDays.map { dayNames[$0] }.joined(separator: ", ")
+                summary = "\(times)x per week on \(dayList)"
+            }
         }
 
         if let end = endDate {
