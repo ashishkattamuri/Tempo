@@ -134,11 +134,24 @@ Good places to start — issues labeled [`good first issue`](../../issues?q=is%3
 
 ## Roadmap
 
-- [ ] Analytics — time spent by category, weekly trends
-- [ ] Task inbox — backlog of unscheduled tasks with auto-suggest
-- [ ] Apple Calendar sync
-- [ ] iOS widget
-- [ ] Natural language input ("Move my 3pm to tomorrow")
+Tempo is built in three stages, each making the app meaningfully more useful than the last.
+
+### Stage 1 — Smart Manual Scheduling ✓ *(current)*
+A calendar you can trust. Tasks have priorities, conflicts resolve intelligently, habits survive hard days, and your schedule stays honest even when life doesn't cooperate.
+
+### Stage 2 — Productivity Intelligence *(next)*
+The app starts working *for* you rather than just responding to you. This means understanding how you actually spend your time, surfacing tasks you haven't scheduled yet, grouping related work intelligently, and syncing with your existing calendar so nothing falls through the cracks.
+
+The goal: less time managing your schedule, more time executing it.
+
+### Stage 3 — Conversational AI Assistant *(future)*
+The end state is an assistant you can talk to. Not just a chatbot layered on top of a calendar, but an agent that understands your priorities, knows your history, and can negotiate your schedule on your behalf.
+
+> *"I have a deadline Friday — help me protect time for deep work this week."*
+> *"Move everything non-essential out of tomorrow morning."*
+> *"What did I spend the most time on last week?"*
+
+The scheduling logic Tempo is building now — priority rules, conflict resolution, habit preservation — becomes the reasoning layer the AI operates on. The assistant doesn't replace your judgment, it amplifies it.
 
 ---
 
