@@ -70,5 +70,10 @@ Thumbs.db
 *.xcconfig
 !*.xcconfig.sample
 
+# Private/confidential project files
+REQUIREMENTS.md
+ROADMAP.md
+ISSUES_TO_CREATE.md
+
 # Archives
 *.xcarchive
