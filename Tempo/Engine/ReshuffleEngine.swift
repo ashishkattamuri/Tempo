@@ -321,7 +321,57 @@ extension ReshuffleEngine {
             debugLog("───────────────────────────────────────────────────────────")
             debugLog("  Finding slot for CONFLICTING: \"\(conflicting.title)\"")
             debugLog("    Duration: \(conflicting.durationMinutes) min")
+            debugLog("    isRecurring: \(conflicting.isRecurring), isDaily: \(conflicting.isDaily), isWeekly: \(conflicting.isWeekly)")
             debugLog("    Already assigned slots: \(assignedSlots.count)")
+
+            // Check if conflicting item is a recurring habit that cannot be moved
+            if conflicting.isRecurring && conflicting.category == .identityHabit {
+                if conflicting.isDaily {
+                    // Daily habits CANNOT be moved - only compress or keep both
+                    debugLog("    Daily habit - cannot move, suggesting keepBoth")
+                    resolution = ConflictResolution(
+                        conflictingItem: conflicting,
+                        newItem: newItem,
+                        suggestion: .userDecision(moveConflictingTo: conflicting.startTime, moveNewTo: slotForNewItem),
+                        reason: "\"\(conflicting.title)\" is a daily habit - consider compressing or skipping today"
+                    )
+                    resolutions.append(resolution)
+                    continue
+                } else if conflicting.isWeekly {
+                    // Weekly habits - find a slot on a day without the same habit
+                    if let validSlot = findSlotForWeeklyHabit(
+                        conflicting,
+                        after: newItem.endTime,
+                        allItems: allItems,
+                        excluding: [newItem] + conflictingItems,
+                        avoidSlots: assignedSlots
+                    ) {
+                        debugLog("    Weekly habit - found valid slot on different day: \(fmt.string(from: validSlot))")
+                        let slotEnd = calendar.date(byAdding: .minute, value: conflicting.durationMinutes, to: validSlot) ?? validSlot
+                        assignedSlots.append((start: validSlot, end: slotEnd))
+
+                        resolution = ConflictResolution(
+                            conflictingItem: conflicting,
+                            newItem: newItem,
+                            suggestion: .moveConflicting(to: validSlot),
+                            reason: "Moving to a day when this habit isn't already scheduled"
+                        )
+                        resolutions.append(resolution)
+                        continue
+                    } else {
+                        // No valid day found - cannot move
+                        debugLog("    Weekly habit - no valid day found, suggesting keepBoth")
+                        resolution = ConflictResolution(
+                            conflictingItem: conflicting,
+                            newItem: newItem,
+                            suggestion: .userDecision(moveConflictingTo: conflicting.startTime, moveNewTo: slotForNewItem),
+                            reason: "\"\(conflicting.title)\" is scheduled on all nearby days - consider compressing or skipping"
+                        )
+                        resolutions.append(resolution)
+                        continue
+                    }
+                }
+            }
 
             // Find best slot - exclude ALL conflicting items and avoid assigned slots
             var slotForConflicting = findNextAvailableSlotForConflicting(
@@ -454,6 +504,63 @@ extension ReshuffleEngine {
         }
 
         return candidateTime
+    }
+
+    /// Find a valid slot for a weekly recurring habit on a day that doesn't have the same habit scheduled
+    private func findSlotForWeeklyHabit(
+        _ habit: ScheduleItem,
+        after time: Date,
+        allItems: [ScheduleItem],
+        excluding: [ScheduleItem],
+        avoidSlots: [(start: Date, end: Date)]
+    ) -> Date? {
+        let calendar = Calendar.current
+
+        // Check the next few days (within the same week)
+        for dayOffset in 0...6 {
+            guard let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: habit.scheduledDate) else {
+                continue
+            }
+
+            // For day 0 (same day), only look for slots after the conflict
+            let searchAfter: Date
+            if dayOffset == 0 {
+                searchAfter = time
+            } else {
+                searchAfter = targetDate.startOfDay.withTime(hour: 6)
+            }
+
+            // Check if this day of week is in the recurrence schedule
+            let targetWeekday = calendar.component(.weekday, from: targetDate) - 1 // 0-indexed
+            if habit.recurrenceDays.contains(targetWeekday) && dayOffset > 0 {
+                // This day already has this habit scheduled, skip it
+                continue
+            }
+
+            // Check if we're still in the same week (don't defer to next week)
+            let habitWeek = calendar.component(.weekOfYear, from: habit.scheduledDate)
+            let targetWeek = calendar.component(.weekOfYear, from: targetDate)
+            if targetWeek != habitWeek && dayOffset > 0 {
+                break // Don't move to next week
+            }
+
+            // Try to find a slot on this day
+            let candidateSlot = findNextAvailableSlotForConflicting(
+                after: searchAfter,
+                duration: habit.durationMinutes,
+                on: targetDate,
+                allItems: allItems,
+                excluding: excluding,
+                avoidSlots: avoidSlots
+            )
+
+            // Verify the slot is on the target date (not pushed to next day)
+            if candidateSlot.isSameDay(as: targetDate) {
+                return candidateSlot
+            }
+        }
+
+        return nil
     }
 
     /// Find the next available time slot that doesn't conflict with existing items

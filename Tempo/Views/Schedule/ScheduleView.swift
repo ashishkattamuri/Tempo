@@ -1,6 +1,12 @@
 import SwiftUI
 import SwiftData
 
+/// Wrapper to make conflict resolutions identifiable for sheet presentation
+struct ConflictResolutionData: Identifiable {
+    let id = UUID()
+    let resolutions: [ConflictResolution]
+}
+
 /// Main daily schedule view - Structured-inspired timeline design.
 struct ScheduleView: View {
     @Environment(\.modelContext) private var modelContext
@@ -15,9 +21,7 @@ struct ScheduleView: View {
     @State private var selectedSlotTime: Date?
     @State private var showingAddTask = false
     @State private var selectedItem: ScheduleItem?
-    @State private var showingTaskDetail = false
-    @State private var showingConflictResolution = false
-    @State private var conflictResolutions: [ConflictResolution] = []
+    @State private var conflictData: ConflictResolutionData?
     @State private var savedItem: ScheduleItem?
     @State private var pendingConflictCheck: ScheduleItem?
 
@@ -196,42 +200,37 @@ struct ScheduleView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingConflictResolution) {
-            if !conflictResolutions.isEmpty {
-                ConflictResolutionSheet(
-                    resolutions: conflictResolutions,
-                    onResolve: { resolution, action in
-                        applyResolution(resolution, action: action)
-                    },
-                    onDismiss: {
-                        showingConflictResolution = false
-                        conflictResolutions = []
-                    }
-                )
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-            }
+        .sheet(item: $conflictData) { data in
+            ConflictResolutionSheet(
+                resolutions: data.resolutions,
+                onResolve: { resolution, action in
+                    applyResolution(resolution, action: action)
+                },
+                onDismiss: {
+                    conflictData = nil
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showingTaskDetail) {
-            if let item = selectedItem {
-                TaskDetailSheet(
-                    item: item,
-                    onEdit: {
-                        showingTaskDetail = false
-                        onEditTask(item)
-                    },
-                    onComplete: {
-                        toggleCompletion(item)
-                        showingTaskDetail = false
-                    },
-                    onDelete: {
-                        modelContext.delete(item)
-                        showingTaskDetail = false
-                    }
-                )
-                .presentationDetents([.height(280)])
-                .presentationDragIndicator(.visible)
-            }
+        .sheet(item: $selectedItem) { item in
+            TaskDetailSheet(
+                item: item,
+                onEdit: {
+                    selectedItem = nil
+                    onEditTask(item)
+                },
+                onComplete: {
+                    toggleCompletion(item)
+                    selectedItem = nil
+                },
+                onDelete: {
+                    modelContext.delete(item)
+                    selectedItem = nil
+                }
+            )
+            .presentationDetents([.height(280)])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -571,7 +570,6 @@ struct ScheduleView: View {
 
         return Button(action: {
             selectedItem = item
-            showingTaskDetail = true
         }) {
             HStack(alignment: .center, spacing: isCompact ? 6 : 10) {
                 // Duration bar on left (spans full height)
@@ -763,12 +761,12 @@ struct ScheduleView: View {
         if !conflicts.isEmpty {
             savedItem = newItem
             // Pass all items so the engine can find truly empty slots
-            conflictResolutions = reshuffleEngine.suggestResolution(
+            let resolutions = reshuffleEngine.suggestResolution(
                 newItem: newItem,
                 conflictingItems: conflicts,
                 allItems: Array(allItems)
             )
-            showingConflictResolution = true
+            conflictData = ConflictResolutionData(resolutions: resolutions)
         }
     }
 
@@ -795,8 +793,7 @@ struct ScheduleView: View {
                 try? modelContext.save()
             }
             // Clear ALL resolutions and dismiss since moving the new item fixes everything
-            conflictResolutions.removeAll()
-            showingConflictResolution = false
+            conflictData = nil
             savedItem = nil
             return
 
@@ -817,9 +814,9 @@ struct ScheduleView: View {
 
     private func recalculateRemainingConflicts(excludingResolved resolved: ConflictResolution) {
         guard let newItem = savedItem,
-              let actualNewItem = allItems.first(where: { $0.id == newItem.id }) else {
-            conflictResolutions.removeAll()
-            showingConflictResolution = false
+              let actualNewItem = allItems.first(where: { $0.id == newItem.id }),
+              let currentData = conflictData else {
+            conflictData = nil
             savedItem = nil
             return
         }
@@ -828,7 +825,7 @@ struct ScheduleView: View {
         let freshItems = fetchFreshItems(for: actualNewItem.scheduledDate)
 
         // Get remaining conflicting item IDs (exclude the one we just resolved)
-        let remainingConflictIds = conflictResolutions
+        let remainingConflictIds = currentData.resolutions
             .filter { $0.id != resolved.id }
             .map { $0.conflictingItem.id }
 
@@ -841,16 +838,16 @@ struct ScheduleView: View {
 
         if stillConflicting.isEmpty {
             // No more conflicts - we're done
-            conflictResolutions.removeAll()
-            showingConflictResolution = false
+            conflictData = nil
             savedItem = nil
         } else {
             // Recalculate resolutions with fresh slot suggestions using fresh items
-            conflictResolutions = reshuffleEngine.suggestResolution(
+            let resolutions = reshuffleEngine.suggestResolution(
                 newItem: actualNewItem,
                 conflictingItems: stillConflicting,
                 allItems: freshItems
             )
+            conflictData = ConflictResolutionData(resolutions: resolutions)
         }
     }
 
@@ -973,21 +970,6 @@ struct TaskDetailSheet: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
-            }
-            .padding(.horizontal)
-
-            // Focus button
-            Button(action: {}) {
-                HStack {
-                    Image(systemName: "scope")
-                    Text("Focus Now")
-                }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color.accentColor)
                 .cornerRadius(12)
             }
             .padding(.horizontal)
