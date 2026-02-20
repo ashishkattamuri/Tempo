@@ -6,7 +6,17 @@ import UserNotifications
 /// Configures SwiftData ModelContainer and sets up the root view.
 @main
 struct TempoApp: App {
+
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    // MARK: - Appearance (NEW)
+
+    @AppStorage("appAppearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
+
+    private var selectedAppearance: AppAppearance {
+        AppAppearance(rawValue: appAppearanceRaw) ?? .system
+    }
+
     /// Shared model container for SwiftData persistence
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -38,6 +48,7 @@ struct TempoApp: App {
             ContentView()
                 .environmentObject(sleepManager)
                 .environmentObject(compensationTracker)
+                .preferredColorScheme(selectedAppearance.colorScheme) // ✅ Applied here
                 .onAppear {
                     setupNotifications()
                 }
@@ -46,10 +57,8 @@ struct TempoApp: App {
     }
 
     private func setupNotifications() {
-        // Setup notification categories
         NotificationService.shared.setupNotificationCategories()
 
-        // Request notification permission
         Task {
             _ = await NotificationService.shared.requestAuthorization()
         }
@@ -59,6 +68,7 @@ struct TempoApp: App {
 // MARK: - App Delegate for Notification Handling
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -67,17 +77,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         return true
     }
 
-    // Handle notifications when app is in foreground
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        // Show notification even when app is in foreground
         completionHandler([.banner, .sound, .badge])
     }
 
-    // Handle notification actions
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
@@ -87,8 +94,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let userInfo = response.notification.request.content.userInfo
 
         switch actionIdentifier {
+
         case "SCHEDULE_COMPENSATION":
-            // User wants to schedule compensation - app will handle this via deep link
             NotificationCenter.default.post(
                 name: Notification.Name("OpenCompensationView"),
                 object: nil,
@@ -96,7 +103,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             )
 
         case "VIEW_TASK":
-            // User wants to view a deferred task
             if let taskIdString = userInfo["taskId"] as? String {
                 NotificationCenter.default.post(
                     name: Notification.Name("OpenTask"),
@@ -106,14 +112,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
 
         case "PLAN_WEEKEND":
-            // User wants to plan weekend compensation
             NotificationCenter.default.post(
                 name: Notification.Name("OpenCompensationView"),
                 object: nil
             )
 
         case "START_TASK":
-            // User wants to start a task immediately
             if let taskIdString = userInfo["taskId"] as? String {
                 NotificationCenter.default.post(
                     name: Notification.Name("OpenTask"),
@@ -123,9 +127,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
 
         case "SNOOZE_REMINDER":
-            // Reschedule the reminder for 5 minutes later
             if let taskIdString = userInfo["taskId"] as? String,
                let taskTitle = userInfo["taskTitle"] as? String {
+
                 let content = UNMutableNotificationContent()
                 content.title = "Coming up: \(taskTitle)"
                 content.body = "Starting now!"
@@ -144,7 +148,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
 
         default:
-            // Default action - user tapped the notification
             break
         }
 

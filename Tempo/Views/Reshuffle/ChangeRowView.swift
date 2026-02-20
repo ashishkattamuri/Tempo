@@ -21,7 +21,7 @@ struct ChangeRowView: View {
             // Change type icon
             Image(systemName: change.iconName)
                 .font(.title2)
-                .foregroundColor(iconColor)
+                .foregroundStyle(iconColor)
                 .frame(width: 40)
 
             // Content
@@ -34,7 +34,7 @@ struct ChangeRowView: View {
                 // Change details
                 Text(changeDescription)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                   .foregroundStyle(.secondary)
 
                 // Reason (compassionate language)
                 Text(change.reason)
@@ -110,7 +110,7 @@ struct ChangeSectionHeader: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: iconName)
-                .foregroundColor(color)
+                .foregroundStyle(color)
 
             Text(title)
                 .font(.headline)
@@ -119,7 +119,7 @@ struct ChangeSectionHeader: View {
 
             Text("\(count)")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(Color(.systemGray5))
@@ -160,7 +160,7 @@ struct UserDecisionView: View {
     private var headerView: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
+           .foregroundStyle(.orange)
 
             Text(change.item.title)
                 .font(.headline)
@@ -174,7 +174,7 @@ struct UserDecisionView: View {
     private var reasonView: some View {
         Text(change.reason)
             .font(.subheadline)
-            .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
     }
 
     private var optionsView: some View {
@@ -195,7 +195,7 @@ struct UserDecisionView: View {
 
                     Text(option.description)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                       .foregroundStyle(.secondary)
                 }
 
                 Spacer()

@@ -24,31 +24,32 @@ struct SleepSettingsView: View {
             }
 
             if sleepManager.isEnabled {
+
                 // Current Schedule Section
                 if let schedule = sleepManager.sleepSchedule {
                     Section("Current Sleep Schedule") {
                         HStack {
                             Label("Bedtime", systemImage: "moon.fill")
-                                .foregroundColor(.indigo)
+                                .foregroundStyle(.indigo)
                             Spacer()
                             Text(schedule.bedtimeString)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         HStack {
                             Label("Wake time", systemImage: "sun.max.fill")
-                                .foregroundColor(.orange)
+                                .foregroundStyle(.orange)
                             Spacer()
                             Text(schedule.wakeTimeString)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         HStack {
                             Label("Wind-down buffer", systemImage: "clock.badge.checkmark")
-                                .foregroundColor(.purple)
+                                .foregroundStyle(.purple)
                             Spacer()
                             Text("\(schedule.bufferMinutes) min")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -59,7 +60,7 @@ struct SleepSettingsView: View {
                         if sleepManager.isAuthorized {
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
+                                    .foregroundStyle(.green)
                                 Text("Connected to Health")
                             }
 
@@ -76,7 +77,7 @@ struct SleepSettingsView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "heart.fill")
-                                        .foregroundColor(.red)
+                                        .foregroundStyle(.red)
                                     Text("Connect to Apple Health")
                                 }
                             }
@@ -84,15 +85,15 @@ struct SleepSettingsView: View {
                             if let error = sleepManager.authorizationError {
                                 Text(error)
                                     .font(.caption)
-                                    .foregroundColor(.red)
+                                    .foregroundStyle(.red)
                             }
                         }
                     } else {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.yellow)
+                                .foregroundStyle(.yellow)
                             Text("HealthKit not available")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 } header: {

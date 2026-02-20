@@ -2,12 +2,18 @@ import SwiftUI
 
 /// Main settings menu view that provides access to all app settings.
 struct SettingsMenuView: View {
+
     @ObservedObject var sleepManager: SleepManager
     @ObservedObject var compensationTracker: CompensationTracker
     let onDismiss: () -> Void
 
+    // MARK: - Appearance (NEW)
+
+    @AppStorage("appAppearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
+
     var body: some View {
         List {
+
             // Sleep Schedule Section
             Section {
                 NavigationLink {
@@ -15,7 +21,7 @@ struct SettingsMenuView: View {
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "moon.fill")
-                            .foregroundColor(.indigo)
+                            .foregroundStyle(.indigo)
                             .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 2) {
@@ -25,11 +31,11 @@ struct SettingsMenuView: View {
                             if sleepManager.isEnabled, let schedule = sleepManager.sleepSchedule {
                                 Text("\(schedule.bedtimeString) - \(schedule.wakeTimeString)")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             } else {
                                 Text("Not configured")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -45,7 +51,7 @@ struct SettingsMenuView: View {
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "arrow.counterclockwise.circle.fill")
-                            .foregroundColor(.orange)
+                            .foregroundStyle(.orange)
                             .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 2) {
@@ -55,11 +61,11 @@ struct SettingsMenuView: View {
                             if compensationTracker.hasPendingCompensations {
                                 Text("\(compensationTracker.formattedPendingTime) to make up")
                                     .font(.caption)
-                                    .foregroundColor(.orange)
+                                    .foregroundStyle(.orange)
                             } else {
                                 Text("All caught up")
                                     .font(.caption)
-                                    .foregroundColor(.green)
+                                    .foregroundStyle(.green)
                             }
                         }
                     }
@@ -74,10 +80,22 @@ struct SettingsMenuView: View {
                     Text("Version")
                     Spacer()
                     Text("2.0")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             } header: {
                 Text("About")
+            }
+
+            // MARK: - Appearance Section (NEW)
+
+            Section("Appearance") {
+                Picker("Theme", selection: $appAppearanceRaw) {
+                    ForEach(AppAppearance.allCases) { appearance in
+                        Text(appearance.displayName)
+                            .tag(appearance.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
         }
         .navigationTitle("Settings")

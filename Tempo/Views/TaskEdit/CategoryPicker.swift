@@ -26,15 +26,16 @@ struct CategoryOptionRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 12) {
+
                 // Selection indicator
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundColor(isSelected ? category.color : .gray)
+                    .foregroundStyle(isSelected ? category.color : .gray)
 
                 // Category icon and color
                 Image(systemName: category.iconName)
                     .font(.title3)
-                    .foregroundColor(category.color)
+                    .foregroundStyle(category.color)
                     .frame(width: 32)
 
                 // Text content
@@ -42,11 +43,11 @@ struct CategoryOptionRow: View {
                     Text(category.displayName)
                         .font(.body)
                         .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
 
                     Text(category.description)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
 
@@ -85,7 +86,7 @@ struct CompactCategoryPicker: View {
                 CategoryBadge(category: selection, size: .medium)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
     }
