@@ -124,7 +124,7 @@ struct TaskEditView: View {
 
                 Image(systemName: category.iconName)
                     .font(.title2)
-                    .foregroundColor(category.color)
+                    .foregroundStyle(category.color)
             }
 
             TextField("Task name", text: $title)
@@ -181,7 +181,7 @@ struct TaskEditView: View {
                 if !quickDurations.contains(durationMinutes) {
                     Text("\(durationMinutes) min")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -207,11 +207,11 @@ struct TaskEditView: View {
                 HStack {
                     Text("5m")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Text("8h")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -228,7 +228,7 @@ struct TaskEditView: View {
             Text(label)
                 .font(.subheadline)
                 .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundColor(isSelected ? .white : .primary)
+                .foregroundStyle(isSelected ? .white : .primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(
@@ -247,7 +247,7 @@ struct TaskEditView: View {
                 HStack(spacing: 12) {
                     Text("Category")
                         .font(.headline)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
 
                     Spacer()
 
@@ -260,17 +260,17 @@ struct TaskEditView: View {
 
                             Image(systemName: category.iconName)
                                 .font(.system(size: 12))
-                                .foregroundColor(category.color)
+                                .foregroundStyle(category.color)
                         }
 
                         Text(category.displayName)
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
 
                     Image(systemName: "chevron.right")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -321,7 +321,7 @@ struct TaskEditView: View {
 
                 Text("On hard days, this habit can be compressed to the minimum while still counting as \"showing up\"")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()
@@ -353,7 +353,7 @@ struct TaskEditView: View {
             }
             .font(.body)
             .fontWeight(.medium)
-            .foregroundColor(.red)
+            .foregroundStyle(.red)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background(Color.red.opacity(0.1))
@@ -365,12 +365,12 @@ struct TaskEditView: View {
         Button(action: save) {
             Text(isEditing ? "Update Task" : "Add Task")
                 .font(.headline)
-                .foregroundColor(.white)
+.foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(isValid ? category.color : Color.gray)
+                        .fill(isValid ? category.color : Color(.systemGray4))
                 )
         }
         .disabled(!isValid)
@@ -525,25 +525,25 @@ struct CategoryPickerScreen: View {
 
                             Image(systemName: category.iconName)
                                 .font(.title3)
-                                .foregroundColor(category.color)
+                                .foregroundStyle(category.color)
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(category.displayName)
                                 .font(.body)
                                 .fontWeight(.medium)
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.primary)
 
                             Text(category.description)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         Spacer()
 
                         if selection == category {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(category.color)
+                                .foregroundStyle(category.color)
                         }
                     }
                     .contentShape(Rectangle())

@@ -79,7 +79,7 @@ struct ReshuffleProposalView: View {
 
             Text("Analyzing your schedule...")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -87,14 +87,14 @@ struct ReshuffleProposalView: View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 64))
-                .foregroundColor(.green)
+                .foregroundStyle(.green)
 
             Text("You're on track!")
                 .font(.headline)
 
             Text("No changes needed for today's schedule.")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             Button("Done", action: onCancel)
@@ -108,7 +108,7 @@ struct ReshuffleProposalView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 64))
-                .foregroundColor(.orange)
+                .foregroundStyle(.orange)
 
             Text("Couldn't analyze schedule")
                 .font(.headline)
@@ -234,7 +234,7 @@ struct ReshuffleProposalView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(result.summary)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+           .foregroundStyle(.secondary)
 
             if result.timeSavedMinutes > 0 {
                 HStack {
@@ -242,7 +242,7 @@ struct ReshuffleProposalView: View {
                     Text("\(result.timeSavedMinutes) minutes saved through adjustments")
                 }
                 .font(.caption)
-                .foregroundColor(.green)
+                .foregroundStyle(.green)
             }
 
             if result.eveningProtectionTriggered {
@@ -251,7 +251,7 @@ struct ReshuffleProposalView: View {
                     Text("Evening protection active")
                 }
                 .font(.caption)
-                .foregroundColor(.purple)
+                .foregroundStyle(.purple)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -277,7 +277,7 @@ struct ReshuffleProposalView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color(.systemGray5))
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
                         .cornerRadius(Constants.cornerRadius)
                 }
                 .buttonStyle(.plain)
@@ -298,7 +298,7 @@ struct ReshuffleProposalView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.accentColor)
-                    .foregroundColor(.white)
+                   .foregroundStyle(.white)
                     .cornerRadius(Constants.cornerRadius)
                 }
                 .buttonStyle(.plain)
