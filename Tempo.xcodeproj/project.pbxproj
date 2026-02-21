@@ -52,6 +52,7 @@
 		000000000000000000000046 /* RecurrenceFrequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000046 /* RecurrenceFrequency.swift */; };
 		79B448AD2F48D9770092638B /* CalendarImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B448AC2F48D9770092638B /* CalendarImportView.swift */; };
 		79B448B02F48DA520092638B /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B448AE2F48DA1B0092638B /* CalendarService.swift */; };
+		E131D87D2F497E3F007DB74A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -102,6 +103,8 @@
 		100000000000000000000046 /* RecurrenceFrequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurrenceFrequency.swift; sourceTree = "<group>"; };
 		79B448AC2F48D9770092638B /* CalendarImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarImportView.swift; sourceTree = "<group>"; };
 		79B448AE2F48DA1B0092638B /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		E131D87B2F497D4A007DB74A /* Tempo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tempo.entitlements; sourceTree = "<group>"; };
+		E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,6 +122,7 @@
 		300000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */,
 				300000000000000000000002 /* Tempo */,
 				300000000000000000000003 /* Products */,
 				E180D2A42F338FE0006FC0B0 /* Recovered References */,
@@ -128,6 +132,7 @@
 		300000000000000000000002 /* Tempo */ = {
 			isa = PBXGroup;
 			children = (
+				E131D87B2F497D4A007DB74A /* Tempo.entitlements */,
 				300000000000000000000004 /* App */,
 				300000000000000000000005 /* Models */,
 				300000000000000000000006 /* Engine */,
@@ -379,6 +384,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E131D87D2F497E3F007DB74A /* PrivacyInfo.xcprivacy in Resources */,
 				000000000000000000000034 /* Assets.xcassets in Resources */,
 				000000000000000000000035 /* Preview Assets.xcassets in Resources */,
 			);
@@ -563,8 +569,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
@@ -594,8 +601,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
