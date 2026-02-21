@@ -2,7 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
 	<key>NSHealthShareUsageDescription</key>
 	<string>Tempo reads your sleep schedule to avoid scheduling tasks during your rest time.</string>
+
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Tempo imports your Apple Calendar events as non-negotiable tasks to protect your commitments.</string>
+
+	<key>NSCalendarsUsageDescription</key>
+	<string>Tempo imports your Apple Calendar events as non-negotiable tasks to protect your commitments.</string>
+
 </dict>
 </plist>

@@ -8,7 +8,9 @@ struct SettingsMenuView: View {
 
     var body: some View {
         List {
-            // Sleep Schedule Section
+            
+            // MARK: - Time Blocking
+            
             Section {
                 NavigationLink {
                     SleepSettingsView(sleepManager: sleepManager)
@@ -37,8 +39,34 @@ struct SettingsMenuView: View {
             } header: {
                 Text("Time Blocking")
             }
+            
+            // MARK: - Calendar
+            
+            Section {
+                NavigationLink {
+                    CalendarImportView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "calendar.badge.plus")
+                            .foregroundColor(.blue)
+                            .frame(width: 28)
 
-            // Compensation Section
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Import Apple Calendar")
+                                .font(.body)
+                            
+                            Text("Sync events as Non-Negotiable tasks")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("Calendar")
+            }
+            
+            // MARK: - Task Management
+            
             Section {
                 NavigationLink {
                     CompensationView(compensationTracker: compensationTracker)
@@ -68,7 +96,8 @@ struct SettingsMenuView: View {
                 Text("Task Management")
             }
 
-            // About Section
+            // MARK: - About
+            
             Section {
                 HStack {
                     Text("Version")
