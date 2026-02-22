@@ -33,14 +33,20 @@ struct OptionalGoalProcessor: CategoryProcessor {
         let overflowBeforeThisItem = calculateOverflowBeforeThisItem(item, in: context)
 
         if overflowBeforeThisItem > 0 {
-            // This item needs to be deferred
+            // Find the first free slot on tomorrow rather than naively reusing the same time
             let tomorrow = context.targetDate.addingDays(1)
-            let newStartTime = tomorrow.withTime(hour: item.startTime.hour, minute: item.startTime.minute)
+            let newStartTime: Date
+            if let slot = context.findSlot(forDurationMinutes: item.durationMinutes, on: tomorrow) {
+                newStartTime = slot.start
+            } else {
+                // Fallback: 9 AM tomorrow if no slot data available
+                newStartTime = tomorrow.withTime(hour: 9)
+            }
 
             return Change(
                 item: item,
                 action: .deferred(newDate: newStartTime),
-                reason: "Deferred to tomorrow - today's priorities come first. This can wait."
+                reason: "Deferred to tomorrow - today's priorities come first."
             )
         }
 
