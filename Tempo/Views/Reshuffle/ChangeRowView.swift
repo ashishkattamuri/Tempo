@@ -139,6 +139,8 @@ struct ChangeSectionHeader: View {
 /// View for changes that require user decision
 struct UserDecisionView: View {
     let change: Change
+    /// ID of the option the user has already tapped (for highlighting).
+    var selectedOptionId: UUID? = nil
     let onSelectOption: (Change.UserOption) -> Void
 
     private var options: [Change.UserOption] {
@@ -192,27 +194,33 @@ struct UserDecisionView: View {
     }
 
     private func optionButton(for option: Change.UserOption) -> some View {
-        Button(action: { onSelectOption(option) }) {
+        let isSelected = option.id == selectedOptionId
+        return Button(action: { onSelectOption(option) }) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(option.title)
                         .font(.subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(isSelected ? .semibold : .medium)
+                        .foregroundColor(isSelected ? .accentColor : .primary)
 
                     Text(option.description)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(isSelected ? .accentColor.opacity(0.8) : .secondary)
                 }
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(isSelected ? .accentColor : Color(.systemGray3))
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
             .cornerRadius(Constants.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }

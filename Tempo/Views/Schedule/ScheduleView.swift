@@ -1175,21 +1175,23 @@ struct ConflictResolutionSheet: View {
             // Action buttons based on suggestion
             VStack(spacing: 10) {
                 switch resolution.suggestion {
-                case .moveConflicting(let newTime):
-                    Button(action: {
-                        onResolve(resolution, .moveConflicting(to: newTime))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(newTime))")
+                case .moveConflicting(let options):
+                    ForEach(options, id: \.self) { date in
+                        Button(action: {
+                            onResolve(resolution, .moveConflicting(to: date))
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.right")
+                                Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(date))")
+                            }
+                            .font(.subheadline)
+                            .fontWeight(options.count == 1 ? .medium : .regular)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor)
+                            .cornerRadius(10)
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
                     Button(action: {
@@ -1207,53 +1209,75 @@ struct ConflictResolutionSheet: View {
                         .cornerRadius(10)
                     }
 
-                case .moveNew(let newTime):
-                    Button(action: {
-                        onResolve(resolution, .moveNew(to: newTime))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move new task to \(formatTime(newTime))")
+                case .moveNew(let options):
+                    ForEach(options, id: \.self) { date in
+                        Button(action: {
+                            onResolve(resolution, .moveNew(to: date))
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.right")
+                                Text("Move new task to \(formatTime(date))")
+                            }
+                            .font(.subheadline)
+                            .fontWeight(options.count == 1 ? .medium : .regular)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor)
+                            .cornerRadius(10)
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
-                case .userDecision(let moveConflictingTo, let moveNewTo):
-                    Button(action: {
-                        onResolve(resolution, .moveConflicting(to: moveConflictingTo))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(moveConflictingTo))")
+                case .userDecision(let conflictingOptions, let newOptions):
+                    if !conflictingOptions.isEmpty {
+                        Text("Move \"\(resolution.conflictingItem.title)\"")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(conflictingOptions, id: \.self) { date in
+                            Button(action: {
+                                onResolve(resolution, .moveConflicting(to: date))
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.right")
+                                    Text("\(formatTime(date))")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(conflictingOptions.count == 1 ? .medium : .regular)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor)
+                                .cornerRadius(10)
+                            }
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
-                    Button(action: {
-                        onResolve(resolution, .moveNew(to: moveNewTo))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.newItem.title)\" to \(formatTime(moveNewTo))")
+                    if !newOptions.isEmpty {
+                        Text("Move \"\(resolution.newItem.title)\"")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, conflictingOptions.isEmpty ? 0 : 4)
+                        ForEach(newOptions, id: \.self) { date in
+                            Button(action: {
+                                onResolve(resolution, .moveNew(to: date))
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.right")
+                                    Text("\(formatTime(date))")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(newOptions.count == 1 ? .medium : .regular)
+                                .foregroundColor(.accentColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor.opacity(0.1))
+                                .cornerRadius(10)
+                            }
                         }
-                        .font(.subheadline)
-                        .foregroundColor(.accentColor)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor.opacity(0.1))
-                        .cornerRadius(10)
                     }
                 }
             }

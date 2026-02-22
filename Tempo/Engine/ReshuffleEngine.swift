@@ -175,7 +175,7 @@ final class ReshuffleEngine {
             )
 
         case .identityHabit:
-            // 1. Try full-duration slot today
+            // 1. Try full-duration slot today (auto-pick best)
             if let slot = findFreeSlotToday(duration: item.durationMinutes, context: context, claimedSlots: &claimedFutureSlots) {
                 claimSlot(slot, duration: item.durationMinutes, in: &claimedFutureSlots)
                 return Change(item: item, action: .moved(newStartTime: slot), reason: "Move to next available slot today")
@@ -208,7 +208,7 @@ final class ReshuffleEngine {
             return Change(item: item, action: .protected, reason: "Already scheduled tomorrow — mark done if completed today")
 
         case .flexibleTask, .optionalGoal:
-            // 1. Try full-duration slot today
+            // 1. Try full-duration slot today (auto-pick best)
             if let slot = findFreeSlotToday(duration: item.durationMinutes, context: context, claimedSlots: &claimedFutureSlots) {
                 claimSlot(slot, duration: item.durationMinutes, in: &claimedFutureSlots)
                 return Change(item: item, action: .moved(newStartTime: slot), reason: "Move to next available slot today")
@@ -308,6 +308,46 @@ final class ReshuffleEngine {
     private func claimSlot(_ start: Date, duration: Int, in claimedSlots: inout [(start: Date, end: Date)]) {
         let end = Calendar.current.date(byAdding: .minute, value: duration, to: start) ?? start
         claimedSlots.append((start: start, end: end))
+    }
+
+    /// Find up to `maxCount` non-overlapping available slots for a conflicting item.
+    /// The first result is always included even if it spills to the next day (backward-compat).
+    private func findMultipleSlots(
+        after time: Date,
+        duration: Int,
+        on date: Date,
+        allItems: [ScheduleItem],
+        excluding: [ScheduleItem],
+        avoidSlots: [(start: Date, end: Date)],
+        maxCount: Int = 5
+    ) -> [Date] {
+        let calendar = Calendar.current
+        var results: [Date] = []
+        var localAvoid = avoidSlots
+        var searchAfter = time
+
+        for _ in 0..<maxCount {
+            let slot = findNextAvailableSlotForConflicting(
+                after: searchAfter,
+                duration: duration,
+                on: date,
+                allItems: allItems,
+                excluding: excluding,
+                avoidSlots: localAvoid
+            )
+
+            if results.contains(slot) { break }
+
+            // Only allow slots beyond the first to be on the same target date
+            if !results.isEmpty && !slot.isSameDay(as: date) { break }
+
+            results.append(slot)
+            let end = calendar.date(byAdding: .minute, value: duration, to: slot) ?? slot
+            localAvoid.append((start: slot, end: end))
+            searchAfter = end
+        }
+
+        return results
     }
 
     /// Check whether the same task (by title + category) is already scheduled on tomorrow.
@@ -411,18 +451,18 @@ extension ReshuffleEngine {
             return result
         }
 
-        // Find the best slot to move the NEW item
+        // Find all valid slots to move the NEW item
         let latestConflictEnd = conflictingItems.map { $0.endTime }.max() ?? newItem.endTime
-        debugLog("  Finding slot for NEW item after: \(fmt.string(from: latestConflictEnd))")
-        var slotForNewItem = findNextAvailableSlot(
+        debugLog("  Finding slots for NEW item after: \(fmt.string(from: latestConflictEnd))")
+        let slotsForNewItem = findMultipleSlots(
             after: latestConflictEnd,
             duration: newItem.durationMinutes,
             on: newItem.scheduledDate,
             allItems: allItems,
-            excluding: [newItem] + conflictingItems
+            excluding: [newItem] + conflictingItems,
+            avoidSlots: []
         )
-        slotForNewItem = ensureNotPast(slotForNewItem, label: "slotForNewItem")
-        debugLog("  → Final slot for new item: \(fmt.string(from: slotForNewItem))")
+        debugLog("  → Slots for new item: \(slotsForNewItem.map { fmt.string(from: $0) })")
 
         // Track slots we've already assigned to avoid double-booking
         var assignedSlots: [(start: Date, end: Date)] = []
@@ -431,7 +471,7 @@ extension ReshuffleEngine {
             let resolution: ConflictResolution
 
             debugLog("───────────────────────────────────────────────────────────")
-            debugLog("  Finding slot for CONFLICTING: \"\(conflicting.title)\"")
+            debugLog("  Finding slots for CONFLICTING: \"\(conflicting.title)\"")
             debugLog("    Duration: \(conflicting.durationMinutes) min")
             debugLog("    isRecurring: \(conflicting.isRecurring), isDaily: \(conflicting.isDaily), isWeekly: \(conflicting.isWeekly)")
             debugLog("    Already assigned slots: \(assignedSlots.count)")
@@ -440,11 +480,11 @@ extension ReshuffleEngine {
             if conflicting.isRecurring && conflicting.category == .identityHabit {
                 if conflicting.isDaily {
                     // Daily habits CANNOT be moved - only compress or keep both
-                    debugLog("    Daily habit - cannot move, suggesting keepBoth")
+                    debugLog("    Daily habit - cannot move, suggesting userDecision")
                     resolution = ConflictResolution(
                         conflictingItem: conflicting,
                         newItem: newItem,
-                        suggestion: .userDecision(moveConflictingTo: conflicting.startTime, moveNewTo: slotForNewItem),
+                        suggestion: .userDecision(conflictingOptions: [conflicting.startTime], newOptions: slotsForNewItem),
                         reason: "\"\(conflicting.title)\" is a daily habit - consider compressing or skipping today"
                     )
                     resolutions.append(resolution)
@@ -465,18 +505,18 @@ extension ReshuffleEngine {
                         resolution = ConflictResolution(
                             conflictingItem: conflicting,
                             newItem: newItem,
-                            suggestion: .moveConflicting(to: validSlot),
+                            suggestion: .moveConflicting(options: [validSlot]),
                             reason: "Moving to a day when this habit isn't already scheduled"
                         )
                         resolutions.append(resolution)
                         continue
                     } else {
                         // No valid day found - cannot move
-                        debugLog("    Weekly habit - no valid day found, suggesting keepBoth")
+                        debugLog("    Weekly habit - no valid day found, suggesting userDecision")
                         resolution = ConflictResolution(
                             conflictingItem: conflicting,
                             newItem: newItem,
-                            suggestion: .userDecision(moveConflictingTo: conflicting.startTime, moveNewTo: slotForNewItem),
+                            suggestion: .userDecision(conflictingOptions: [conflicting.startTime], newOptions: slotsForNewItem),
                             reason: "\"\(conflicting.title)\" is scheduled on all nearby days - consider compressing or skipping"
                         )
                         resolutions.append(resolution)
@@ -485,8 +525,8 @@ extension ReshuffleEngine {
                 }
             }
 
-            // Find best slot - exclude ALL conflicting items and avoid assigned slots
-            var slotForConflicting = findNextAvailableSlotForConflicting(
+            // Find multiple slots for the conflicting item, avoiding already-assigned slots
+            let slotsForConflicting = findMultipleSlots(
                 after: newItem.endTime,
                 duration: conflicting.durationMinutes,
                 on: conflicting.scheduledDate,
@@ -494,41 +534,41 @@ extension ReshuffleEngine {
                 excluding: [newItem] + conflictingItems,
                 avoidSlots: assignedSlots
             )
-            debugLog("    Raw slot returned: \(fmt.string(from: slotForConflicting))")
-            slotForConflicting = ensureNotPast(slotForConflicting, label: "slotForConflicting")
-            debugLog("    FINAL slot: \(fmt.string(from: slotForConflicting))")
+            debugLog("    FINAL slots: \(slotsForConflicting.map { fmt.string(from: $0) })")
 
-            // Track this slot
-            let slotEnd = calendar.date(byAdding: .minute, value: conflicting.durationMinutes, to: slotForConflicting) ?? slotForConflicting
-            assignedSlots.append((start: slotForConflicting, end: slotEnd))
+            // Track the first slot to avoid double-booking for subsequent conflicting items
+            if let firstSlot = slotsForConflicting.first {
+                let slotEnd = calendar.date(byAdding: .minute, value: conflicting.durationMinutes, to: firstSlot) ?? firstSlot
+                assignedSlots.append((start: firstSlot, end: slotEnd))
+            }
 
             // Determine resolution based on priority
             if newItem.category == .nonNegotiable {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .moveConflicting(to: slotForConflicting),
+                    suggestion: .moveConflicting(options: slotsForConflicting),
                     reason: "\"\(newItem.title)\" is non-negotiable - moving \"\(conflicting.title)\" to next available slot"
                 )
             } else if newItem.category.priority < conflicting.category.priority {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .moveConflicting(to: slotForConflicting),
+                    suggestion: .moveConflicting(options: slotsForConflicting),
                     reason: "\"\(newItem.title)\" (\(newItem.category.displayName)) has higher priority"
                 )
             } else if newItem.category.priority > conflicting.category.priority {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .moveNew(to: slotForNewItem),
+                    suggestion: .moveNew(options: slotsForNewItem),
                     reason: "\"\(conflicting.title)\" (\(conflicting.category.displayName)) has higher priority"
                 )
             } else {
                 resolution = ConflictResolution(
                     conflictingItem: conflicting,
                     newItem: newItem,
-                    suggestion: .userDecision(moveConflictingTo: slotForConflicting, moveNewTo: slotForNewItem),
+                    suggestion: .userDecision(conflictingOptions: slotsForConflicting, newOptions: slotsForNewItem),
                     reason: "Both tasks have the same priority level"
                 )
             }
@@ -846,8 +886,8 @@ struct ConflictResolution: Identifiable {
     let reason: String
 
     enum Suggestion {
-        case moveConflicting(to: Date)
-        case moveNew(to: Date)
-        case userDecision(moveConflictingTo: Date, moveNewTo: Date)
+        case moveConflicting(options: [Date])
+        case moveNew(options: [Date])
+        case userDecision(conflictingOptions: [Date], newOptions: [Date])
     }
 }
