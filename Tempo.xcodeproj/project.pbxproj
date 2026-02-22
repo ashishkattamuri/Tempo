@@ -13,7 +13,6 @@
 		000000000000000000000004 /* ScheduleItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000004 /* ScheduleItem.swift */; };
 		000000000000000000000005 /* Change.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000005 /* Change.swift */; };
 		000000000000000000000006 /* ReshuffleResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000006 /* ReshuffleResult.swift */; };
-		000000000000000000000007 /* EveningDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000007 /* EveningDecision.swift */; };
 		000000000000000000000008 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000008 /* Constants.swift */; };
 		000000000000000000000009 /* DateExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000009 /* DateExtensions.swift */; };
 		000000000000000000000010 /* TimeCalculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000010 /* TimeCalculations.swift */; };
@@ -26,7 +25,6 @@
 		000000000000000000000017 /* OptionalGoalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000017 /* OptionalGoalProcessor.swift */; };
 		000000000000000000000018 /* OverflowDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000018 /* OverflowDetector.swift */; };
 		000000000000000000000019 /* ReshuffleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000019 /* ReshuffleEngine.swift */; };
-		000000000000000000000020 /* EveningProtectionAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000020 /* EveningProtectionAnalyzer.swift */; };
 		000000000000000000000021 /* SummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000021 /* SummaryGenerator.swift */; };
 		000000000000000000000022 /* CategoryBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* CategoryBadge.swift */; };
 		000000000000000000000023 /* ConfirmationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* ConfirmationSheet.swift */; };
@@ -50,7 +48,6 @@
 		000000000000000000000044 /* SettingsMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000044 /* SettingsMenuView.swift */; };
 		000000000000000000000045 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000045 /* NotificationService.swift */; };
 		000000000000000000000046 /* RecurrenceFrequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000046 /* RecurrenceFrequency.swift */; };
-		012C4853248C0E8D6E9460A6 /* EveningProtectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0FE5E44CD3F1B60F8C42B0A /* EveningProtectionTests.swift */; };
 		01BB4002DE04FFFA26353818 /* CriticalScenarioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D9B54E1041EF2BFB78E78C /* CriticalScenarioTests.swift */; };
 		72BA05E070F074D7E3D277A8 /* ProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE35872014EFE6647A0DC12B /* ProcessorTests.swift */; };
 		79B448AD2F48D9770092638B /* CalendarImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B448AC2F48D9770092638B /* CalendarImportView.swift */; };
@@ -79,7 +76,6 @@
 		100000000000000000000004 /* ScheduleItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleItem.swift; sourceTree = "<group>"; };
 		100000000000000000000005 /* Change.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Change.swift; sourceTree = "<group>"; };
 		100000000000000000000006 /* ReshuffleResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReshuffleResult.swift; sourceTree = "<group>"; };
-		100000000000000000000007 /* EveningDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EveningDecision.swift; sourceTree = "<group>"; };
 		100000000000000000000008 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		100000000000000000000009 /* DateExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensions.swift; sourceTree = "<group>"; };
 		100000000000000000000010 /* TimeCalculations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeCalculations.swift; sourceTree = "<group>"; };
@@ -92,7 +88,6 @@
 		100000000000000000000017 /* OptionalGoalProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionalGoalProcessor.swift; sourceTree = "<group>"; };
 		100000000000000000000018 /* OverflowDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverflowDetector.swift; sourceTree = "<group>"; };
 		100000000000000000000019 /* ReshuffleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReshuffleEngine.swift; sourceTree = "<group>"; };
-		100000000000000000000020 /* EveningProtectionAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EveningProtectionAnalyzer.swift; sourceTree = "<group>"; };
 		100000000000000000000021 /* SummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryGenerator.swift; sourceTree = "<group>"; };
 		100000000000000000000022 /* CategoryBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBadge.swift; sourceTree = "<group>"; };
 		100000000000000000000023 /* ConfirmationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmationSheet.swift; sourceTree = "<group>"; };
@@ -122,7 +117,6 @@
 		6E548CA394FD65D86A6152E7 /* SummaryGeneratorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SummaryGeneratorTests.swift; sourceTree = "<group>"; };
 		79B448AC2F48D9770092638B /* CalendarImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarImportView.swift; sourceTree = "<group>"; };
 		79B448AE2F48DA1B0092638B /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
-		B0FE5E44CD3F1B60F8C42B0A /* EveningProtectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EveningProtectionTests.swift; sourceTree = "<group>"; };
 		DE35872014EFE6647A0DC12B /* ProcessorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProcessorTests.swift; sourceTree = "<group>"; };
 		E131D87B2F497D4A007DB74A /* Tempo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tempo.entitlements; sourceTree = "<group>"; };
 		E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -206,7 +200,6 @@
 				100000000000000000000004 /* ScheduleItem.swift */,
 				100000000000000000000005 /* Change.swift */,
 				100000000000000000000006 /* ReshuffleResult.swift */,
-				100000000000000000000007 /* EveningDecision.swift */,
 				100000000000000000000041 /* CompensationRecord.swift */,
 				100000000000000000000046 /* RecurrenceFrequency.swift */,
 			);
@@ -219,7 +212,6 @@
 				300000000000000000000012 /* Processors */,
 				100000000000000000000018 /* OverflowDetector.swift */,
 				100000000000000000000019 /* ReshuffleEngine.swift */,
-				100000000000000000000020 /* EveningProtectionAnalyzer.swift */,
 				100000000000000000000021 /* SummaryGenerator.swift */,
 			);
 			path = Engine;
@@ -356,7 +348,6 @@
 			isa = PBXGroup;
 			children = (
 				25D9B54E1041EF2BFB78E78C /* CriticalScenarioTests.swift */,
-				B0FE5E44CD3F1B60F8C42B0A /* EveningProtectionTests.swift */,
 				6E548CA394FD65D86A6152E7 /* SummaryGeneratorTests.swift */,
 				EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */,
 				DE35872014EFE6647A0DC12B /* ProcessorTests.swift */,
@@ -487,7 +478,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				01BB4002DE04FFFA26353818 /* CriticalScenarioTests.swift in Sources */,
-				012C4853248C0E8D6E9460A6 /* EveningProtectionTests.swift in Sources */,
 				FB8199F254B18929D95D3E19 /* SummaryGeneratorTests.swift in Sources */,
 				EF61B8A9B20B29A83DCA5CB1 /* ReshuffleEngineTests.swift in Sources */,
 				72BA05E070F074D7E3D277A8 /* ProcessorTests.swift in Sources */,
@@ -505,7 +495,6 @@
 				000000000000000000000005 /* Change.swift in Sources */,
 				000000000000000000000006 /* ReshuffleResult.swift in Sources */,
 				79B448AD2F48D9770092638B /* CalendarImportView.swift in Sources */,
-				000000000000000000000007 /* EveningDecision.swift in Sources */,
 				000000000000000000000008 /* Constants.swift in Sources */,
 				000000000000000000000009 /* DateExtensions.swift in Sources */,
 				000000000000000000000010 /* TimeCalculations.swift in Sources */,
@@ -519,7 +508,6 @@
 				000000000000000000000018 /* OverflowDetector.swift in Sources */,
 				79B448B02F48DA520092638B /* CalendarService.swift in Sources */,
 				000000000000000000000019 /* ReshuffleEngine.swift in Sources */,
-				000000000000000000000020 /* EveningProtectionAnalyzer.swift in Sources */,
 				000000000000000000000021 /* SummaryGenerator.swift in Sources */,
 				000000000000000000000022 /* CategoryBadge.swift in Sources */,
 				000000000000000000000023 /* ConfirmationSheet.swift in Sources */,

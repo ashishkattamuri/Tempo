@@ -6,10 +6,7 @@ import Foundation
 struct SummaryGenerator {
 
     /// Generate a complete summary of the reshuffle result
-    func generate(
-        changes: [Change],
-        eveningDecision: EveningDecision?
-    ) -> String {
+    func generate(changes: [Change]) -> String {
         var sections: [String] = []
 
         // Opening message
@@ -53,11 +50,6 @@ struct SummaryGenerator {
         let needsDecision = changes.filter { if case .requiresUserDecision = $0.action { return true }; return false }
         if !needsDecision.isEmpty {
             sections.append(decisionSection(needsDecision))
-        }
-
-        // Evening protection note
-        if let evening = eveningDecision, evening.requiresConsent {
-            sections.append(eveningSection(evening))
         }
 
         // Closing encouragement
@@ -170,10 +162,6 @@ struct SummaryGenerator {
         }
 
         return lines.joined(separator: "\n")
-    }
-
-    private func eveningSection(_ decision: EveningDecision) -> String {
-        return "Evening: \(decision.message)"
     }
 
     private func closingMessage(for changes: [Change]) -> String {

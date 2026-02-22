@@ -19,7 +19,12 @@ struct FlexibleTaskProcessor: CategoryProcessor {
         // Check if we should defer to another day
         if shouldDefer(item, in: context) {
             let tomorrow = context.targetDate.addingDays(1)
-            let newStartTime = tomorrow.withTime(hour: item.startTime.hour, minute: item.startTime.minute)
+            let newStartTime: Date
+            if let slot = context.findSlot(forDurationMinutes: item.durationMinutes, on: tomorrow) {
+                newStartTime = slot.start
+            } else {
+                newStartTime = tomorrow.withTime(hour: 9)
+            }
             return Change(
                 item: item,
                 action: .deferred(newDate: newStartTime),

@@ -44,7 +44,6 @@ private func debugLog(_ message: String) {
 @MainActor
 final class ReshuffleEngine {
     private let overflowDetector = OverflowDetector()
-    private let eveningAnalyzer = EveningProtectionAnalyzer()
     private let summaryGenerator = SummaryGenerator()
 
     /// Optional sleep manager for blocking sleep times
@@ -76,44 +75,22 @@ final class ReshuffleEngine {
         // Step 3: Analyze overflow
         let overflowAnalysis = overflowDetector.analyze(context: context)
 
-        // Step 4: Analyze evening protection
-        let eveningDecision = eveningAnalyzer.analyze(
-            items: items,
-            for: date,
-            overflowAnalysis: overflowAnalysis
-        )
-
-        // Step 5: Process each item by category
+        // Step 4: Process each item by category
         var changes: [Change] = []
+        var claimedFutureSlots: [(start: Date, end: Date)] = []
 
-        // Process in priority order
         for item in context.itemsByPriority {
-            let change = processItem(item, context: context, overflowAnalysis: overflowAnalysis)
+            let change = processItem(item, context: context, overflowAnalysis: overflowAnalysis, claimedFutureSlots: &claimedFutureSlots)
             changes.append(change)
         }
 
-        // Step 6: Handle evening items separately if evening protection triggered
-        if eveningDecision.requiresConsent {
-            // Evening changes need user consent - mark them appropriately
-            changes = handleEveningProtection(
-                changes: changes,
-                eveningDecision: eveningDecision,
-                context: context
-            )
-        }
+        // Step 5: Generate summary
+        let summary = summaryGenerator.generate(changes: changes)
 
-        // Step 7: Generate summary
-        let summary = summaryGenerator.generate(
-            changes: changes,
-            eveningDecision: eveningDecision
-        )
-
-        // Step 8: Build result
+        // Step 6: Build result
         return ReshuffleResult(
             changes: changes,
-            summary: summary,
-            eveningProtectionTriggered: eveningDecision.requiresConsent,
-            eveningDecision: eveningDecision
+            summary: summary
         )
     }
 
@@ -154,61 +131,196 @@ final class ReshuffleEngine {
     private func processItem(
         _ item: ScheduleItem,
         context: ReshuffleContext,
-        overflowAnalysis: OverflowDetector.OverflowAnalysis
+        overflowAnalysis: OverflowDetector.OverflowAnalysis,
+        claimedFutureSlots: inout [(start: Date, end: Date)]
     ) -> Change {
-        // Select processor based on category
-        let processor: CategoryProcessor
-
-        switch item.category {
-        case .nonNegotiable:
-            processor = nonNegotiableProcessor
-        case .identityHabit:
-            processor = identityHabitProcessor
-        case .flexibleTask:
-            processor = flexibleTaskProcessor
-        case .optionalGoal:
-            processor = optionalGoalProcessor
+        // "Fix My Day": any past incomplete item on today's schedule gets
+        // category-specific handling to find the next available slot.
+        if context.targetDate.isToday,
+           !item.isCompleted,
+           item.startTime < context.currentTime {
+            return fixMyDayChange(for: item, context: context, claimedFutureSlots: &claimedFutureSlots)
         }
 
-        return processor.process(item: item, context: context)
+        // Overflow/conflict handling via category processors
+        switch item.category {
+        case .nonNegotiable:
+            return nonNegotiableProcessor.process(item: item, context: context)
+        case .identityHabit:
+            return identityHabitProcessor.process(item: item, context: context)
+        case .flexibleTask:
+            return flexibleTaskProcessor.process(item: item, context: context)
+        case .optionalGoal:
+            return optionalGoalProcessor.process(item: item, context: context)
+        }
     }
 
-    private func handleEveningProtection(
-        changes: [Change],
-        eveningDecision: EveningDecision,
-        context: ReshuffleContext
-    ) -> [Change] {
-        var modifiedChanges = changes
+    // MARK: - Fix My Day
 
-        // Find evening items in the changes
-        for (index, change) in modifiedChanges.enumerated() {
-            if change.item.isEveningTask {
-                // Check if the proposed change would affect evening
-                switch change.action {
-                case .moved(let newTime) where newTime.isEvening:
-                    // This would push into evening - mark for user decision
-                    modifiedChanges[index] = Change(
-                        item: change.item,
-                        action: .requiresUserDecision(options: [
-                            Change.UserOption(
-                                title: "Keep in evening",
-                                description: "Allow this task in your evening"
-                            ),
-                            Change.UserOption(
-                                title: "Defer to tomorrow",
-                                description: "Move to tomorrow instead"
-                            )
-                        ]),
-                        reason: "This would affect your protected evening time"
+    /// Category-specific handling for past incomplete items on today's schedule.
+    private func fixMyDayChange(
+        for item: ScheduleItem,
+        context: ReshuffleContext,
+        claimedFutureSlots: inout [(start: Date, end: Date)]
+    ) -> Change {
+        switch item.category {
+        case .nonNegotiable:
+            return Change(
+                item: item,
+                action: .requiresUserDecision(options: [
+                    Change.UserOption(title: "Mark as done", description: "Mark \"\(item.title)\" as completed"),
+                    Change.UserOption(title: "Defer to tomorrow", description: "Move \"\(item.title)\" to tomorrow's schedule")
+                ]),
+                reason: "Non-negotiable task is incomplete"
+            )
+
+        case .identityHabit:
+            // 1. Try full-duration slot today
+            if let slot = findFreeSlotToday(duration: item.durationMinutes, context: context, claimedSlots: &claimedFutureSlots) {
+                claimSlot(slot, duration: item.durationMinutes, in: &claimedFutureSlots)
+                return Change(item: item, action: .moved(newStartTime: slot), reason: "Move to next available slot today")
+            }
+            // 2. Try compressed slot today
+            if item.isCompressible, let minDuration = item.minimumDurationMinutes {
+                if let slot = findFreeSlotToday(duration: minDuration, context: context, claimedSlots: &claimedFutureSlots) {
+                    claimSlot(slot, duration: minDuration, in: &claimedFutureSlots)
+                    return Change(
+                        item: item,
+                        action: .movedAndResized(newStartTime: slot, newDurationMinutes: minDuration),
+                        reason: "Shortened and moved to fit today"
                     )
-                default:
+                }
+            }
+            // 3. Defer to tomorrow if not already recurring there
+            if !isScheduledTomorrow(item, context: context) {
+                let tomorrow = context.targetDate.addingDays(1)
+                let tomorrowSlot = findFreeSlotOn(
+                    date: tomorrow,
+                    startingAfter: tomorrow.withTime(hour: 6),
+                    duration: item.durationMinutes,
+                    context: context,
+                    claimedSlots: &claimedFutureSlots
+                ) ?? nextFallbackSlot(on: tomorrow, duration: item.durationMinutes, claimedSlots: claimedFutureSlots)
+                claimSlot(tomorrowSlot, duration: item.durationMinutes, in: &claimedFutureSlots)
+                return Change(item: item, action: .deferred(newDate: tomorrowSlot), reason: "Defer to tomorrow — no time left today")
+            }
+            // Already recurring tomorrow — protect in place
+            return Change(item: item, action: .protected, reason: "Already scheduled tomorrow — mark done if completed today")
+
+        case .flexibleTask, .optionalGoal:
+            // 1. Try full-duration slot today
+            if let slot = findFreeSlotToday(duration: item.durationMinutes, context: context, claimedSlots: &claimedFutureSlots) {
+                claimSlot(slot, duration: item.durationMinutes, in: &claimedFutureSlots)
+                return Change(item: item, action: .moved(newStartTime: slot), reason: "Move to next available slot today")
+            }
+            // 2. Defer to tomorrow if not already recurring there
+            if !isScheduledTomorrow(item, context: context) {
+                let tomorrow = context.targetDate.addingDays(1)
+                let tomorrowSlot = findFreeSlotOn(
+                    date: tomorrow,
+                    startingAfter: tomorrow.withTime(hour: 6),
+                    duration: item.durationMinutes,
+                    context: context,
+                    claimedSlots: &claimedFutureSlots
+                ) ?? nextFallbackSlot(on: tomorrow, duration: item.durationMinutes, claimedSlots: claimedFutureSlots)
+                claimSlot(tomorrowSlot, duration: item.durationMinutes, in: &claimedFutureSlots)
+                return Change(item: item, action: .deferred(newDate: tomorrowSlot), reason: "Defer to tomorrow — no time left today")
+            }
+            // Already recurring tomorrow — protect in place
+            return Change(item: item, action: .protected, reason: "Already scheduled tomorrow — mark done if completed today")
+        }
+    }
+
+    private func findFreeSlotToday(
+        duration: Int,
+        context: ReshuffleContext,
+        claimedSlots: inout [(start: Date, end: Date)]
+    ) -> Date? {
+        findFreeSlotOn(
+            date: context.targetDate,
+            startingAfter: context.currentTime,
+            duration: duration,
+            context: context,
+            claimedSlots: &claimedSlots
+        )
+    }
+
+    private func findFreeSlotOn(
+        date: Date,
+        startingAfter time: Date,
+        duration: Int,
+        context: ReshuffleContext,
+        claimedSlots: inout [(start: Date, end: Date)]
+    ) -> Date? {
+        var candidate = findNextAvailableSlot(
+            after: time,
+            duration: duration,
+            on: date,
+            allItems: context.allItems,
+            excluding: []
+        )
+        guard candidate.isSameDay(as: date) else { return nil }
+
+        let calendar = Calendar.current
+        var iterations = 0
+        while iterations < 20 {
+            iterations += 1
+            let candidateEnd = calendar.date(byAdding: .minute, value: duration, to: candidate) ?? candidate
+            var overlapped = false
+            for claimed in claimedSlots {
+                if candidate < claimed.end && candidateEnd > claimed.start {
+                    candidate = findNextAvailableSlot(
+                        after: claimed.end,
+                        duration: duration,
+                        on: date,
+                        allItems: context.allItems,
+                        excluding: []
+                    )
+                    guard candidate.isSameDay(as: date) else { return nil }
+                    overlapped = true
                     break
                 }
             }
+            if !overlapped { break }
         }
 
-        return modifiedChanges
+        return candidate.isSameDay(as: date) ? candidate : nil
     }
+
+    /// When no free slot is found on a date, produce a sequenced fallback starting at 9 AM
+    /// and advancing past any already-claimed slots on that day.
+    private func nextFallbackSlot(
+        on date: Date,
+        duration: Int,
+        claimedSlots: [(start: Date, end: Date)]
+    ) -> Date {
+        let calendar = Calendar.current
+        var fallback = date.withTime(hour: 9)
+        for claimed in claimedSlots.filter({ $0.start.isSameDay(as: date) }).sorted(by: { $0.start < $1.start }) {
+            let fallbackEnd = calendar.date(byAdding: .minute, value: duration, to: fallback) ?? fallback
+            if fallback < claimed.end && fallbackEnd > claimed.start {
+                fallback = claimed.end
+            }
+        }
+        return fallback
+    }
+
+    private func claimSlot(_ start: Date, duration: Int, in claimedSlots: inout [(start: Date, end: Date)]) {
+        let end = Calendar.current.date(byAdding: .minute, value: duration, to: start) ?? start
+        claimedSlots.append((start: start, end: end))
+    }
+
+    /// Check whether the same task (by title + category) is already scheduled on tomorrow.
+    private func isScheduledTomorrow(_ item: ScheduleItem, context: ReshuffleContext) -> Bool {
+        let tomorrow = context.targetDate.addingDays(1)
+        return context.allItems.contains { other in
+            other.scheduledDate.isSameDay(as: tomorrow) &&
+            !other.isCompleted &&
+            other.title == item.title &&
+            other.categoryRawValue == item.categoryRawValue
+        }
+    }
+
 }
 
 // MARK: - Convenience Extensions
