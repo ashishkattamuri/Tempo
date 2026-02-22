@@ -108,8 +108,37 @@ final class ReshuffleEngineTests: XCTestCase {
     // MARK: - Requirement 5: Slot finder never returns a time in the past
 
     func testSlotFinderNeverReturnsTimeInPast() {
-        // Skipped: pending implementation of "fix my day" feature, tracked in issue #15.
-        // Note: XCTSkip does not propagate correctly under @MainActor; using early return instead.
+        // Given — an incomplete task whose start time is in the past
+        let date = Date()
+        let currentTime = makeDate(hour: 14) // simulate it being 2 PM
+
+        let pastItem = ScheduleItem(
+            title: "Morning Task",
+            category: .flexibleTask,
+            startTime: makeDate(hour: 8), // scheduled at 8 AM — already past
+            durationMinutes: 30
+        )
+
+        // When
+        let result = engine.analyze(items: [pastItem], for: date, currentTime: currentTime)
+
+        // Then — the proposed new time must never be in the past
+        for change in result.changes {
+            switch change.action {
+            case .moved(let newTime):
+                XCTAssertGreaterThanOrEqual(
+                    newTime, currentTime,
+                    "Moved time \(newTime) should not be before currentTime \(currentTime)"
+                )
+            case .deferred(let newDate):
+                XCTAssertGreaterThan(
+                    newDate, date,
+                    "Deferred date \(newDate) should be after today"
+                )
+            default:
+                break
+            }
+        }
     }
 
     // MARK: - Requirement 6: Multi-day slot search works correctly
