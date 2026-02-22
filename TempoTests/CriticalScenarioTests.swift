@@ -2,6 +2,7 @@ import XCTest
 @testable import Tempo
 
 /// Tests for the 5 critical scenarios from the verification plan
+@MainActor
 final class CriticalScenarioTests: XCTestCase {
 
     var engine: ReshuffleEngine!
