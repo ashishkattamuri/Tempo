@@ -126,10 +126,22 @@ struct ScheduleView: View {
         return engine.hasIssues(items: itemsForSelectedDate, for: selectedDate)
     }
 
+    /// True when today is selected and at least one incomplete task's start time has passed.
+    private var hasPastIncompleteItems: Bool {
+        guard selectedDate.isToday else { return false }
+        let now = Date()
+        return itemsForSelectedDate.contains { !$0.isCompleted && $0.startTime < now }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Week calendar header
             weekCalendarHeader
+
+            // "Fix My Day" banner — visible when today has past incomplete tasks
+            if hasPastIncompleteItems {
+                fixMyDayBanner
+            }
 
             // Timeline content
             GeometryReader { geometry in
@@ -307,6 +319,39 @@ struct ScheduleView: View {
         }
         .padding(.vertical, 12)
         .background(Color(.systemBackground))
+    }
+
+    // MARK: - Fix My Day Banner
+
+    private var fixMyDayBanner: some View {
+        Button(action: onReshuffle) {
+            HStack(spacing: 12) {
+                Image(systemName: "wand.and.stars")
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Some earlier tasks are unchecked")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    Text("Reschedule or mark them as done")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.accentColor)
+        }
+        .buttonStyle(.plain)
     }
 
     // Sunday of the week containing selectedDate.

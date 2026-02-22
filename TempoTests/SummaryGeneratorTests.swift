@@ -57,7 +57,7 @@ final class SummaryGeneratorTests: XCTestCase {
         let changes: [Change] = []
 
         // When
-        let summary = generator.generate(changes: changes, eveningDecision: nil)
+        let summary = generator.generate(changes: changes)
 
         // Then
         XCTAssertFalse(summary.isEmpty)
@@ -77,7 +77,7 @@ final class SummaryGeneratorTests: XCTestCase {
         ]
 
         // When
-        let summary = generator.generate(changes: changes, eveningDecision: nil)
+        let summary = generator.generate(changes: changes)
 
         // Then
         XCTAssertTrue(summary.contains("on track") || summary.contains("schedule"), summary)
@@ -102,7 +102,7 @@ final class SummaryGeneratorTests: XCTestCase {
         ]
 
         // When
-        let summary = generator.generate(changes: changes, eveningDecision: nil)
+        let summary = generator.generate(changes: changes)
 
         // Then
         XCTAssertTrue(summary.lowercased().contains("adjusted"), summary)
@@ -126,22 +126,10 @@ final class SummaryGeneratorTests: XCTestCase {
         ]
 
         // When
-        let summary = generator.generate(changes: changes, eveningDecision: nil)
+        let summary = generator.generate(changes: changes)
 
         // Then
         XCTAssertTrue(summary.lowercased().contains("defer"), summary)
-        XCTAssertTrue(generator.validateLanguage(summary))
-    }
-
-    func testGenerate_WithEveningProtection_ShowsEvening() {
-        // Given
-        let changes: [Change] = []
-        let eveningDecision = EveningDecision.case1_eveningEmpty()
-
-        // When
-        let summary = generator.generate(changes: changes, eveningDecision: eveningDecision)
-
-        // Then
         XCTAssertTrue(generator.validateLanguage(summary))
     }
 
@@ -188,7 +176,6 @@ final class SummaryGeneratorTests: XCTestCase {
         let messages = [
             Constants.CompassionateMessage.dayAdjusted,
             Constants.CompassionateMessage.habitCompressed,
-            Constants.CompassionateMessage.eveningProtected,
             Constants.CompassionateMessage.taskDeferred,
             Constants.CompassionateMessage.fullDayDisruption,
             Constants.CompassionateMessage.onTrack

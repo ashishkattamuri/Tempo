@@ -19,17 +19,6 @@ enum Constants {
     /// Work day typically ends
     static let workDayEndHour = 17 // 5 PM
 
-    // MARK: - Evening Protection
-
-    /// Minimum percentage of evening that should remain free
-    static let minimumEveningSlackPercentage = 0.5 // 50%
-
-    /// Evening duration in minutes (6 PM to 11 PM)
-    static let eveningDurationMinutes = 300 // 5 hours
-
-    /// Minimum free time in evening (based on 50% slack)
-    static let minimumEveningFreeMinutes = 150 // 2.5 hours
-
     // MARK: - Task Defaults
 
     /// Default task duration in minutes
@@ -96,7 +85,6 @@ enum Constants {
     enum CompassionateMessage {
         static let dayAdjusted = "Your day has been adjusted. Showing up in any form counts."
         static let habitCompressed = "Your habit is protected, just in a smaller form today."
-        static let eveningProtected = "Your evening is safe. Rest matters."
         static let taskDeferred = "This can wait. Today's priorities come first."
         static let fullDayDisruption = "Some days are harder. You're still showing up."
         static let onTrack = "You're on track. Keep going!"
