@@ -3,6 +3,8 @@ import SwiftUI
 /// Row displaying a single proposed change from reshuffle.
 struct ChangeRowView: View {
     let change: Change
+    var isSkipped: Bool = false
+    var onToggle: (() -> Void)? = nil
 
     private let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -21,32 +23,36 @@ struct ChangeRowView: View {
             // Change type icon
             Image(systemName: change.iconName)
                 .font(.title2)
-                .foregroundStyle(iconColor)
+                .foregroundColor(isSkipped ? .secondary : iconColor)
                 .frame(width: 40)
 
             // Content
-            VStack(alignment: .leading, spacing: 4) {
-                // Task title
+            VStack(alignment: .leading, spacing: 3) {
                 Text(change.item.title)
-                    .font(.body)
-                    .fontWeight(.medium)
-
-                // Change details
-                Text(changeDescription)
                     .font(.subheadline)
-                   .foregroundStyle(.secondary)
+                    .fontWeight(.semibold)
+                    .strikethrough(isSkipped)
+                    .foregroundColor(isSkipped ? .secondary : .primary)
 
-                // Reason (compassionate language)
-                Text(change.reason)
+                Text(changeDescription)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(2)
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
 
             // Category badge
             CategoryBadge(category: change.item.category, size: .small, showLabel: false)
+
+            // Skip/accept toggle (shown only in proposal mode)
+            if let toggle = onToggle {
+                Button(action: toggle) {
+                    Image(systemName: isSkipped ? "minus.circle" : "checkmark.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(isSkipped ? .secondary : .green)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
@@ -75,24 +81,24 @@ struct ChangeRowView: View {
     private var changeDescription: String {
         switch change.action {
         case .protected:
-            return "Stays as scheduled"
+            return "Keep as scheduled"
 
         case .resized(let newDuration):
             let saved = change.item.durationMinutes - newDuration
-            return "Adjusted to \(newDuration) min (saves \(saved) min)"
+            return "Trim to \(newDuration) min — saves \(saved) min"
 
         case .moved(let newTime):
-            return "Moved to \(timeFormatter.string(from: newTime))"
+            return "Move to \(timeFormatter.string(from: newTime))"
 
         case .movedAndResized(let newTime, let newDuration):
             let saved = change.item.durationMinutes - newDuration
-            return "Moved to \(timeFormatter.string(from: newTime)), \(newDuration) min (saves \(saved) min)"
+            return "Move to \(timeFormatter.string(from: newTime)), trim to \(newDuration) min"
 
         case .deferred(let newDate):
-            return "Deferred to \(dateFormatter.string(from: newDate))"
+            return "Defer to \(dateFormatter.string(from: newDate)) at \(timeFormatter.string(from: newDate))"
 
         case .pooled:
-            return "Added to flexible pool"
+            return "Add to flexible pool"
 
         case .requiresUserDecision:
             return "Needs your decision"
@@ -133,6 +139,8 @@ struct ChangeSectionHeader: View {
 /// View for changes that require user decision
 struct UserDecisionView: View {
     let change: Change
+    /// ID of the option the user has already tapped (for highlighting).
+    var selectedOptionId: UUID? = nil
     let onSelectOption: (Change.UserOption) -> Void
 
     private var options: [Change.UserOption] {
@@ -186,27 +194,33 @@ struct UserDecisionView: View {
     }
 
     private func optionButton(for option: Change.UserOption) -> some View {
-        Button(action: { onSelectOption(option) }) {
+        let isSelected = option.id == selectedOptionId
+        return Button(action: { onSelectOption(option) }) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(option.title)
                         .font(.subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(isSelected ? .semibold : .medium)
+                        .foregroundColor(isSelected ? .accentColor : .primary)
 
                     Text(option.description)
                         .font(.caption)
-                       .foregroundStyle(.secondary)
+                        .foregroundColor(isSelected ? .accentColor.opacity(0.8) : .secondary)
                 }
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(isSelected ? .accentColor : Color(.systemGray3))
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
             .cornerRadius(Constants.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }

@@ -2,6 +2,7 @@ import XCTest
 @testable import Tempo
 
 /// Unit tests for all category processors
+@MainActor
 final class ProcessorTests: XCTestCase {
 
     // MARK: - Non-Negotiable Processor Tests

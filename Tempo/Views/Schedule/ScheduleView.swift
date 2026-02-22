@@ -126,10 +126,22 @@ struct ScheduleView: View {
         return engine.hasIssues(items: itemsForSelectedDate, for: selectedDate)
     }
 
+    /// True when today is selected and at least one incomplete task's start time has passed.
+    private var hasPastIncompleteItems: Bool {
+        guard selectedDate.isToday else { return false }
+        let now = Date()
+        return itemsForSelectedDate.contains { !$0.isCompleted && $0.startTime < now }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Week calendar header
             weekCalendarHeader
+
+            // "Fix My Day" banner — visible when today has past incomplete tasks
+            if hasPastIncompleteItems {
+                fixMyDayBanner
+            }
 
             // Timeline content
             GeometryReader { geometry in
@@ -240,18 +252,18 @@ struct ScheduleView: View {
         VStack(spacing: 12) {
             // Month and year - centered
             HStack {
-                Text(selectedDate.formatted(.dateTime.month(.wide)))
+                Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.month(.wide)))
                     .font(.title2)
                     .fontWeight(.bold)
-                Text(selectedDate.formatted(.dateTime.year()))
+                Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.year()))
                     .font(.title2)
                     .fontWeight(.bold)
 .foregroundStyle(Color.accentColor)
 
                 Spacer()
 
-                // Today button if not on current day
-                if !selectedDate.isToday {
+                // Today button when today is not in the currently displayed week
+                if !currentWeekDays.contains(where: { $0.isToday }) {
                     Button(action: { selectedDate = Date() }) {
                         Text("Today")
                             .font(.subheadline)
@@ -266,32 +278,28 @@ struct ScheduleView: View {
             }
             .padding(.horizontal)
 
-            // Swipeable week days
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(extendedDays, id: \.self) { date in
-                        weekDayButton(for: date)
-                            .frame(width: 44)
-                    }
+            // Week strip — always shows the 7 days of the current week.
+            // DragGesture detects a horizontal swipe and advances selectedDate by one week.
+            // selectedDate is the sole source of truth; month label and today button derive
+            // directly from currentWeekDays, so they update the moment selectedDate changes.
+            HStack(spacing: 0) {
+                ForEach(currentWeekDays, id: \.self) { date in
+                    weekDayButton(for: date)
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 12)
             }
+            .frame(height: 72)
             .gesture(
-                DragGesture()
+                DragGesture(minimumDistance: 30, coordinateSpace: .local)
                     .onEnded { value in
-                        if value.translation.width < -50 {
-                            // Swipe left - go forward
-                            withAnimation {
-                                if let newDate = Calendar.current.date(byAdding: .day, value: 7, to: selectedDate) {
-                                    selectedDate = newDate
-                                }
-                            }
-                        } else if value.translation.width > 50 {
-                            // Swipe right - go back
-                            withAnimation {
-                                if let newDate = Calendar.current.date(byAdding: .day, value: -7, to: selectedDate) {
-                                    selectedDate = newDate
-                                }
+                        // Ignore mostly-vertical drags (let the timeline scroll handle those)
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                        let cal = Calendar.current
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if value.translation.width < 0 {
+                                selectedDate = cal.date(byAdding: .weekOfYear, value: 1, to: currentWeekSunday) ?? selectedDate
+                            } else {
+                                selectedDate = cal.date(byAdding: .weekOfYear, value: -1, to: currentWeekSunday) ?? selectedDate
                             }
                         }
                     }
@@ -313,12 +321,50 @@ struct ScheduleView: View {
         .background(Color(.systemBackground))
     }
 
-    // Extended days for scrolling (3 weeks: previous, current, next)
-    private var extendedDays: [Date] {
+    // MARK: - Fix My Day Banner
+
+    private var fixMyDayBanner: some View {
+        Button(action: onReshuffle) {
+            HStack(spacing: 12) {
+                Image(systemName: "wand.and.stars")
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Some earlier tasks are unchecked")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    Text("Reschedule or mark them as done")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.accentColor)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Sunday of the week containing selectedDate.
+    private var currentWeekSunday: Date {
         let calendar = Calendar.current
-        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate))!
-        let startDate = calendar.date(byAdding: .day, value: -7, to: startOfWeek)!
-        return (0..<21).compactMap { calendar.date(byAdding: .day, value: $0, to: startDate) }
+        return calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate))!
+    }
+
+    // The 7 days (Sun–Sat) of the current week. Everything — month label, today button,
+    // the strip itself — derives from this so they all stay in sync automatically.
+    private var currentWeekDays: [Date] {
+        let calendar = Calendar.current
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: currentWeekSunday) }
     }
 
 
@@ -1129,21 +1175,23 @@ struct ConflictResolutionSheet: View {
             // Action buttons based on suggestion
             VStack(spacing: 10) {
                 switch resolution.suggestion {
-                case .moveConflicting(let newTime):
-                    Button(action: {
-                        onResolve(resolution, .moveConflicting(to: newTime))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(newTime))")
+                case .moveConflicting(let options):
+                    ForEach(options, id: \.self) { date in
+                        Button(action: {
+                            onResolve(resolution, .moveConflicting(to: date))
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.right")
+                                Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(date))")
+                            }
+                            .font(.subheadline)
+                            .fontWeight(options.count == 1 ? .medium : .regular)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor)
+                            .cornerRadius(10)
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
                     Button(action: {
@@ -1161,53 +1209,75 @@ struct ConflictResolutionSheet: View {
                         .cornerRadius(10)
                     }
 
-                case .moveNew(let newTime):
-                    Button(action: {
-                        onResolve(resolution, .moveNew(to: newTime))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move new task to \(formatTime(newTime))")
+                case .moveNew(let options):
+                    ForEach(options, id: \.self) { date in
+                        Button(action: {
+                            onResolve(resolution, .moveNew(to: date))
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.right")
+                                Text("Move new task to \(formatTime(date))")
+                            }
+                            .font(.subheadline)
+                            .fontWeight(options.count == 1 ? .medium : .regular)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor)
+                            .cornerRadius(10)
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                      .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                    .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
-                case .userDecision(let moveConflictingTo, let moveNewTo):
-                    Button(action: {
-                        onResolve(resolution, .moveConflicting(to: moveConflictingTo))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(moveConflictingTo))")
+                case .userDecision(let conflictingOptions, let newOptions):
+                    if !conflictingOptions.isEmpty {
+                        Text("Move \"\(resolution.conflictingItem.title)\"")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(conflictingOptions, id: \.self) { date in
+                            Button(action: {
+                                onResolve(resolution, .moveConflicting(to: date))
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.right")
+                                    Text("\(formatTime(date))")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(conflictingOptions.count == 1 ? .medium : .regular)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor)
+                                .cornerRadius(10)
+                            }
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
-                    Button(action: {
-                        onResolve(resolution, .moveNew(to: moveNewTo))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.newItem.title)\" to \(formatTime(moveNewTo))")
+                    if !newOptions.isEmpty {
+                        Text("Move \"\(resolution.newItem.title)\"")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, conflictingOptions.isEmpty ? 0 : 4)
+                        ForEach(newOptions, id: \.self) { date in
+                            Button(action: {
+                                onResolve(resolution, .moveNew(to: date))
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.right")
+                                    Text("\(formatTime(date))")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(newOptions.count == 1 ? .medium : .regular)
+                                .foregroundColor(.accentColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor.opacity(0.1))
+                                .cornerRadius(10)
+                            }
                         }
-                        .font(.subheadline)
-                        .foregroundStyle(Color.accentColor)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor.opacity(0.1))
-                        .cornerRadius(10)
                     }
                 }
             }
