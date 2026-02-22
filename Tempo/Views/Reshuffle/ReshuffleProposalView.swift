@@ -13,6 +13,8 @@ struct ReshuffleProposalView: View {
     @State private var result: ReshuffleResult?
     @State private var isLoading = true
     @State private var skippedChangeIds: Set<UUID> = []
+    /// Maps a `.requiresUserDecision` Change ID → the option the user tapped.
+    @State private var selectedOptionByChangeId: [UUID: Change.UserOption] = [:]
 
     private var itemsForDate: [ScheduleItem] {
         allItems.filter { $0.scheduledDate.isSameDay(as: selectedDate) }
@@ -139,14 +141,9 @@ struct ReshuffleProposalView: View {
         ScrollView {
             LazyVStack(spacing: 0, pinnedViews: .sectionHeaders) {
 
-                // Items requiring user decision
+                // Items requiring user decision — rendered as UserDecisionView cards
                 if !result.itemsRequiringDecision.isEmpty {
-                    changeSection(
-                        title: "Needs Your Input",
-                        icon: "exclamationmark.triangle.fill",
-                        color: .orange,
-                        changes: result.itemsRequiringDecision
-                    )
+                    decisionSection(result.itemsRequiringDecision)
                 }
 
                 // Moved items
@@ -185,6 +182,38 @@ struct ReshuffleProposalView: View {
             .padding(.bottom, 100)
         }
         .background(Color(.systemGroupedBackground))
+    }
+
+    private func decisionSection(_ changes: [Change]) -> some View {
+        Section {
+            VStack(spacing: 12) {
+                ForEach(changes) { change in
+                    UserDecisionView(
+                        change: change,
+                        selectedOptionId: selectedOptionByChangeId[change.id]?.id
+                    ) { option in
+                        // Store the tapped option for apply-time resolution
+                        selectedOptionByChangeId[change.id] = option
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+            .padding(.vertical, 8)
+        } header: {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                Text("Needs Your Input")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(Color(.systemGroupedBackground))
+        }
     }
 
     private func changeSection(title: String, icon: String, color: Color, changes: [Change]) -> some View {
@@ -308,7 +337,51 @@ struct ReshuffleProposalView: View {
     private func applyChanges(_ changes: [Change]) {
         Task { @MainActor in
             let repository = SwiftDataScheduleRepository(modelContext: modelContext)
-            try? await repository.applyChanges(changes)
+            var resolvedChanges: [Change] = []
+
+            for change in changes {
+                if case .requiresUserDecision = change.action {
+                    guard let selected = selectedOptionByChangeId[change.id] else {
+                        continue  // User made no decision — skip
+                    }
+
+                    if let newTime = selected.newStartTime {
+                        // Slot option — move the item to the chosen time
+                        resolvedChanges.append(Change(
+                            id: change.id,
+                            item: change.item,
+                            action: .moved(newStartTime: newTime),
+                            reason: change.reason
+                        ))
+                    } else if selected.title == "Defer to tomorrow" {
+                        // Defer option — keep the same clock time but on tomorrow's date
+                        let cal = Calendar.current
+                        let tomorrow = cal.date(byAdding: .day, value: 1, to: change.item.scheduledDate) ?? change.item.scheduledDate
+                        var comps = cal.dateComponents([.year, .month, .day], from: tomorrow)
+                        let timeComps = cal.dateComponents([.hour, .minute], from: change.item.startTime)
+                        comps.hour = timeComps.hour
+                        comps.minute = timeComps.minute
+                        let deferDate = cal.date(from: comps) ?? tomorrow
+                        resolvedChanges.append(Change(
+                            id: change.id,
+                            item: change.item,
+                            action: .deferred(newDate: deferDate),
+                            reason: change.reason
+                        ))
+                    } else if selected.title == "Mark as done" {
+                        // Complete the live SwiftData item directly
+                        if let liveItem = allItems.first(where: { $0.id == change.item.id }) {
+                            liveItem.isCompleted = true
+                            liveItem.touch()
+                        }
+                        // No Change entry needed — already mutated in place
+                    }
+                } else {
+                    resolvedChanges.append(change)
+                }
+            }
+
+            try? await repository.applyChanges(resolvedChanges)
             onApply()
         }
     }
