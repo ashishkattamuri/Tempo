@@ -132,30 +132,39 @@ struct TaskEditView: View {
                 .fontWeight(.medium)
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+       .background(
+    RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(Color(.secondarySystemBackground))
+)
+.overlay(
+    RoundedRectangle(cornerRadius: 16)
+        .stroke(Color(.separator), lineWidth: 0.5)
+)
     }
 
-    private var whenSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("When?")
-                    .font(.headline)
-                Spacer()
-            }
+  private var whenSection: some View {
 
-            // Date picker - inline graphical style
-            VStack(spacing: 8) {
+    VStack(alignment: .leading, spacing: 12) {
+
+        Text("When?")
+            .font(.headline)
+
+        VStack(spacing: 12) {
+
+            HStack {
                 DatePicker(
                     "Date",
                     selection: $scheduledDate,
                     displayedComponents: .date
                 )
                 .datePickerStyle(.compact)
+            }
+            .padding()
+            .background(Color(.tertiarySystemBackground))
+            .cornerRadius(12)
 
-                Divider()
 
-                // Time picker
+            HStack {
                 DatePicker(
                     "Time",
                     selection: $startTime,
@@ -164,13 +173,23 @@ struct TaskEditView: View {
                 .datePickerStyle(.compact)
             }
             .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(10)
+            .background(Color(.tertiarySystemBackground))
+            .cornerRadius(12)
+
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+
     }
+    .padding()
+    .background(
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(Color(.secondarySystemBackground))
+    )
+    .overlay(
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .stroke(Color(.separator), lineWidth: 0.5)
+    )
+
+}
 
     private var durationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -216,8 +235,14 @@ struct TaskEditView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+       .background(
+    RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(Color(.secondarySystemBackground))
+)
+.overlay(
+    RoundedRectangle(cornerRadius: 16)
+        .stroke(Color(.separator), lineWidth: 0.5)
+)
     }
 
     private func durationButton(_ duration: Int) -> some View {
@@ -275,8 +300,14 @@ struct TaskEditView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+       .background(
+    RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(Color(.secondarySystemBackground))
+)
+.overlay(
+    RoundedRectangle(cornerRadius: 16)
+        .stroke(Color(.separator), lineWidth: 0.5)
+)
     }
 
     private var recurrenceSection: some View {
@@ -325,8 +356,14 @@ struct TaskEditView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+       .background(
+    RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(Color(.secondarySystemBackground))
+)
+.overlay(
+    RoundedRectangle(cornerRadius: 16)
+        .stroke(Color(.separator), lineWidth: 0.5)
+)
     }
 
     private var notesSection: some View {
@@ -335,14 +372,20 @@ struct TaskEditView: View {
                 .font(.headline)
 
             TextEditor(text: $notes)
-                .frame(minHeight: 80)
-                .padding(8)
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
+    .padding(8)
+    .frame(minHeight: 100)
+    .background(Color(.tertiarySystemBackground))
+    .cornerRadius(12)
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+       .background(
+    RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(Color(.secondarySystemBackground))
+)
+.overlay(
+    RoundedRectangle(cornerRadius: 16)
+        .stroke(Color(.separator), lineWidth: 0.5)
+)
     }
 
     private var deleteSection: some View {
@@ -362,20 +405,24 @@ struct TaskEditView: View {
     }
 
     private var saveButton: some View {
-        Button(action: save) {
-            Text(isEditing ? "Update Task" : "Add Task")
-                .font(.headline)
-.foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(isValid ? category.color : Color(.systemGray4))
-                )
-        }
-        .disabled(!isValid)
-        .padding()
-        .background(Color(.systemBackground))
+       Button(action: save) {
+
+    Text(isEditing ? "Update Task" : "Add Task")
+        .font(.headline)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(
+            isValid
+            ? Color.accentColor
+            : Color(.systemGray4)
+        )
+        .foregroundColor(.white)
+        .cornerRadius(14)
+
+}
+.disabled(!isValid)
+.padding()
+.background(Color(.systemBackground))
     }
 
     // MARK: - Actions
