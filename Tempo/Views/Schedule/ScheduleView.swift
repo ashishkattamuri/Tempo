@@ -240,18 +240,18 @@ struct ScheduleView: View {
         VStack(spacing: 12) {
             // Month and year - centered
             HStack {
-                Text(selectedDate.formatted(.dateTime.month(.wide)))
+                Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.month(.wide)))
                     .font(.title2)
                     .fontWeight(.bold)
-                Text(selectedDate.formatted(.dateTime.year()))
+                Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.year()))
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.accentColor)
 
                 Spacer()
 
-                // Today button if not on current day
-                if !selectedDate.isToday {
+                // Today button when today is not in the currently displayed week
+                if !currentWeekDays.contains(where: { $0.isToday }) {
                     Button(action: { selectedDate = Date() }) {
                         Text("Today")
                             .font(.subheadline)
@@ -266,32 +266,28 @@ struct ScheduleView: View {
             }
             .padding(.horizontal)
 
-            // Swipeable week days
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(extendedDays, id: \.self) { date in
-                        weekDayButton(for: date)
-                            .frame(width: 44)
-                    }
+            // Week strip — always shows the 7 days of the current week.
+            // DragGesture detects a horizontal swipe and advances selectedDate by one week.
+            // selectedDate is the sole source of truth; month label and today button derive
+            // directly from currentWeekDays, so they update the moment selectedDate changes.
+            HStack(spacing: 0) {
+                ForEach(currentWeekDays, id: \.self) { date in
+                    weekDayButton(for: date)
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 12)
             }
+            .frame(height: 72)
             .gesture(
-                DragGesture()
+                DragGesture(minimumDistance: 30, coordinateSpace: .local)
                     .onEnded { value in
-                        if value.translation.width < -50 {
-                            // Swipe left - go forward
-                            withAnimation {
-                                if let newDate = Calendar.current.date(byAdding: .day, value: 7, to: selectedDate) {
-                                    selectedDate = newDate
-                                }
-                            }
-                        } else if value.translation.width > 50 {
-                            // Swipe right - go back
-                            withAnimation {
-                                if let newDate = Calendar.current.date(byAdding: .day, value: -7, to: selectedDate) {
-                                    selectedDate = newDate
-                                }
+                        // Ignore mostly-vertical drags (let the timeline scroll handle those)
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                        let cal = Calendar.current
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if value.translation.width < 0 {
+                                selectedDate = cal.date(byAdding: .weekOfYear, value: 1, to: currentWeekSunday) ?? selectedDate
+                            } else {
+                                selectedDate = cal.date(byAdding: .weekOfYear, value: -1, to: currentWeekSunday) ?? selectedDate
                             }
                         }
                     }
@@ -313,12 +309,17 @@ struct ScheduleView: View {
         .background(Color(.systemBackground))
     }
 
-    // Extended days for scrolling (3 weeks: previous, current, next)
-    private var extendedDays: [Date] {
+    // Sunday of the week containing selectedDate.
+    private var currentWeekSunday: Date {
         let calendar = Calendar.current
-        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate))!
-        let startDate = calendar.date(byAdding: .day, value: -7, to: startOfWeek)!
-        return (0..<21).compactMap { calendar.date(byAdding: .day, value: $0, to: startDate) }
+        return calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate))!
+    }
+
+    // The 7 days (Sun–Sat) of the current week. Everything — month label, today button,
+    // the strip itself — derives from this so they all stay in sync automatically.
+    private var currentWeekDays: [Date] {
+        let calendar = Calendar.current
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: currentWeekSunday) }
     }
 
 
