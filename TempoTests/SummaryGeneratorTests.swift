@@ -2,6 +2,7 @@ import XCTest
 @testable import Tempo
 
 /// Unit tests for summary generation and language validation
+@MainActor
 final class SummaryGeneratorTests: XCTestCase {
 
     var generator: SummaryGenerator!

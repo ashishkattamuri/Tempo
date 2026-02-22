@@ -2,6 +2,7 @@ import XCTest
 @testable import Tempo
 
 /// Unit tests for the 10 evening protection cases
+@MainActor
 final class EveningProtectionTests: XCTestCase {
 
     var analyzer: EveningProtectionAnalyzer!
