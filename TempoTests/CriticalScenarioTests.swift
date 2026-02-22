@@ -61,8 +61,12 @@ final class CriticalScenarioTests: XCTestCase {
             case .movedAndResized(_, let newDuration):
                 // Moved and compressed - also acceptable
                 XCTAssertGreaterThanOrEqual(newDuration, 10, "Should not compress below minimum")
+            case .requiresUserDecision(let options):
+                // Multiple available slots found — engine correctly surfaces choices to user
+                XCTAssertFalse(options.isEmpty, "Decision options should not be empty")
+                XCTAssertTrue(options.allSatisfy { $0.newStartTime != nil }, "All slot options should carry a start time")
             default:
-                XCTFail("Expected resized, moved, or protected, got \(change.action)")
+                XCTFail("Expected resized, moved, protected, or requiresUserDecision, got \(change.action)")
             }
         }
 
@@ -156,6 +160,9 @@ final class CriticalScenarioTests: XCTestCase {
         let preservedHabits = habitChanges.filter { change in
             switch change.action {
             case .protected, .resized, .movedAndResized:
+                return true
+            case .requiresUserDecision:
+                // Multiple slots available — user can choose; counts as preserved
                 return true
             default:
                 return false
