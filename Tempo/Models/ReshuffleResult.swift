@@ -8,12 +8,6 @@ struct ReshuffleResult: Equatable {
     /// Human-readable summary using approved language
     let summary: String
 
-    /// Whether evening protection was triggered
-    let eveningProtectionTriggered: Bool
-
-    /// The evening decision if protection was triggered
-    let eveningDecision: EveningDecision?
-
     /// Whether user consent is required for any changes
     var requiresUserConsent: Bool {
         changes.contains { change in
@@ -84,7 +78,6 @@ struct ReshuffleResult: Equatable {
 
     // MARK: - Grouped Changes
 
-    /// Changes grouped by action type for display
     var protectedChanges: [Change] {
         changes.filter { if case .protected = $0.action { return true }; return false }
     }
@@ -117,23 +110,17 @@ struct ReshuffleResult: Equatable {
 
     // MARK: - Factory Methods
 
-    /// Creates an empty result with no changes
     static var empty: ReshuffleResult {
         ReshuffleResult(
             changes: [],
-            summary: "Your schedule looks good! No adjustments needed.",
-            eveningProtectionTriggered: false,
-            eveningDecision: nil
+            summary: "Your schedule looks good! No adjustments needed."
         )
     }
 
-    /// Creates a result indicating the day is on track
     static func onTrack(protectedItems: [Change]) -> ReshuffleResult {
         ReshuffleResult(
             changes: protectedItems,
-            summary: "You're on track. All items protected.",
-            eveningProtectionTriggered: false,
-            eveningDecision: nil
+            summary: "You're on track. All items protected."
         )
     }
 }
@@ -144,6 +131,5 @@ extension ReshuffleResult: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(changes)
         hasher.combine(summary)
-        hasher.combine(eveningProtectionTriggered)
     }
 }

@@ -132,17 +132,21 @@ struct ReshuffleContext {
 // MARK: - Context Factory
 
 extension ReshuffleContext {
-    /// Create a context for reshuffling a specific day
+    /// Create a context for reshuffling a specific day.
+    /// `items` may include items from multiple days — only today's items are used for
+    /// overflow/conflict calculations, but ALL items are kept in `allItems` so that
+    /// slot searches on future days (e.g. tomorrow) see the real schedule.
     static func create(
         for date: Date,
         items: [ScheduleItem],
         currentTime: Date = Date()
     ) -> ReshuffleContext {
-        let incompleteItems = items.filter { !$0.isCompleted }
+        let todayItems = items.filter { $0.scheduledDate.isSameDay(as: date) }
+        let incompleteItems = todayItems.filter { !$0.isCompleted }
 
         let availableSlots = TimeCalculations.findAvailableSlots(
             on: date,
-            excluding: items.filter { $0.isCompleted },
+            excluding: todayItems.filter { $0.isCompleted },
             startHour: currentTime.hour,
             endHour: Constants.eveningStartHour
         )
@@ -153,7 +157,7 @@ extension ReshuffleContext {
         return ReshuffleContext(
             currentTime: currentTime,
             targetDate: date,
-            allItems: items,
+            allItems: items,        // all days — for cross-day slot search
             incompleteItems: incompleteItems,
             availableSlots: availableSlots,
             availableMinutesBeforeEvening: availableMinutes,

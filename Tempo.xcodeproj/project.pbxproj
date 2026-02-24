@@ -13,7 +13,6 @@
 		000000000000000000000004 /* ScheduleItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000004 /* ScheduleItem.swift */; };
 		000000000000000000000005 /* Change.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000005 /* Change.swift */; };
 		000000000000000000000006 /* ReshuffleResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000006 /* ReshuffleResult.swift */; };
-		000000000000000000000007 /* EveningDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000007 /* EveningDecision.swift */; };
 		000000000000000000000008 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000008 /* Constants.swift */; };
 		000000000000000000000009 /* DateExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000009 /* DateExtensions.swift */; };
 		000000000000000000000010 /* TimeCalculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000010 /* TimeCalculations.swift */; };
@@ -26,10 +25,10 @@
 		000000000000000000000017 /* OptionalGoalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000017 /* OptionalGoalProcessor.swift */; };
 		000000000000000000000018 /* OverflowDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000018 /* OverflowDetector.swift */; };
 		000000000000000000000019 /* ReshuffleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000019 /* ReshuffleEngine.swift */; };
-		000000000000000000000020 /* EveningProtectionAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000020 /* EveningProtectionAnalyzer.swift */; };
 		000000000000000000000021 /* SummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000021 /* SummaryGenerator.swift */; };
 		000000000000000000000022 /* CategoryBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* CategoryBadge.swift */; };
 		000000000000000000000023 /* ConfirmationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* ConfirmationSheet.swift */; };
+		000000000000000000000047 /* SleepOverlapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000047 /* SleepOverlapSheet.swift */; };
 		000000000000000000000026 /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* ScheduleView.swift */; };
 		000000000000000000000027 /* CategoryPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000027 /* CategoryPicker.swift */; };
 		000000000000000000000028 /* TaskEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* TaskEditView.swift */; };
@@ -50,8 +49,25 @@
 		000000000000000000000044 /* SettingsMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000044 /* SettingsMenuView.swift */; };
 		000000000000000000000045 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000045 /* NotificationService.swift */; };
 		000000000000000000000046 /* RecurrenceFrequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000046 /* RecurrenceFrequency.swift */; };
-		7930B90B2F48EC6C0083955E /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7930B90A2F48EC6C0083955E /* AppAppearance.swift */; };
+		01BB4002DE04FFFA26353818 /* CriticalScenarioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D9B54E1041EF2BFB78E78C /* CriticalScenarioTests.swift */; };
+		72BA05E070F074D7E3D277A8 /* ProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE35872014EFE6647A0DC12B /* ProcessorTests.swift */; };
+		79B448AD2F48D9770092638B /* CalendarImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B448AC2F48D9770092638B /* CalendarImportView.swift */; };
+		79B448B02F48DA520092638B /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B448AE2F48DA1B0092638B /* CalendarService.swift */; };
+		E131D87D2F497E3F007DB74A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */; };
+		E9FD94BF54710F2A8F5F6C22 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B5E52B6C7052E17C8DB4289 /* Foundation.framework */; };
+		EF61B8A9B20B29A83DCA5CB1 /* ReshuffleEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */; };
+		FB8199F254B18929D95D3E19 /* SummaryGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E548CA394FD65D86A6152E7 /* SummaryGeneratorTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B8897AE856DC7E393E1CEB7B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 600000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 400000000000000000000001;
+			remoteInfo = Tempo;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		100000000000000000000000 /* Tempo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tempo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -61,7 +77,6 @@
 		100000000000000000000004 /* ScheduleItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleItem.swift; sourceTree = "<group>"; };
 		100000000000000000000005 /* Change.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Change.swift; sourceTree = "<group>"; };
 		100000000000000000000006 /* ReshuffleResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReshuffleResult.swift; sourceTree = "<group>"; };
-		100000000000000000000007 /* EveningDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EveningDecision.swift; sourceTree = "<group>"; };
 		100000000000000000000008 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		100000000000000000000009 /* DateExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensions.swift; sourceTree = "<group>"; };
 		100000000000000000000010 /* TimeCalculations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeCalculations.swift; sourceTree = "<group>"; };
@@ -74,10 +89,10 @@
 		100000000000000000000017 /* OptionalGoalProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionalGoalProcessor.swift; sourceTree = "<group>"; };
 		100000000000000000000018 /* OverflowDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverflowDetector.swift; sourceTree = "<group>"; };
 		100000000000000000000019 /* ReshuffleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReshuffleEngine.swift; sourceTree = "<group>"; };
-		100000000000000000000020 /* EveningProtectionAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EveningProtectionAnalyzer.swift; sourceTree = "<group>"; };
 		100000000000000000000021 /* SummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryGenerator.swift; sourceTree = "<group>"; };
 		100000000000000000000022 /* CategoryBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBadge.swift; sourceTree = "<group>"; };
 		100000000000000000000023 /* ConfirmationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmationSheet.swift; sourceTree = "<group>"; };
+		100000000000000000000047 /* SleepOverlapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepOverlapSheet.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* ScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleView.swift; sourceTree = "<group>"; };
 		100000000000000000000027 /* CategoryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryPicker.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* TaskEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskEditView.swift; sourceTree = "<group>"; };
@@ -99,7 +114,16 @@
 		100000000000000000000044 /* SettingsMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsMenuView.swift; sourceTree = "<group>"; };
 		100000000000000000000045 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		100000000000000000000046 /* RecurrenceFrequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurrenceFrequency.swift; sourceTree = "<group>"; };
-		7930B90A2F48EC6C0083955E /* AppAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearance.swift; sourceTree = "<group>"; };
+		25D9B54E1041EF2BFB78E78C /* CriticalScenarioTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CriticalScenarioTests.swift; sourceTree = "<group>"; };
+		4B5E52B6C7052E17C8DB4289 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		6E548CA394FD65D86A6152E7 /* SummaryGeneratorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SummaryGeneratorTests.swift; sourceTree = "<group>"; };
+		79B448AC2F48D9770092638B /* CalendarImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarImportView.swift; sourceTree = "<group>"; };
+		79B448AE2F48DA1B0092638B /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		DE35872014EFE6647A0DC12B /* ProcessorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProcessorTests.swift; sourceTree = "<group>"; };
+		E131D87B2F497D4A007DB74A /* Tempo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tempo.entitlements; sourceTree = "<group>"; };
+		E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E572C1387B7F71918E542DF9 /* TempoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TempoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReshuffleEngineTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,21 +135,33 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B737EB0DDFE41ECCF8874F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E9FD94BF54710F2A8F5F6C22 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		300000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */,
 				300000000000000000000002 /* Tempo */,
 				300000000000000000000003 /* Products */,
 				E180D2A42F338FE0006FC0B0 /* Recovered References */,
+				6123CFBB90DC8B4097C93CEF /* Frameworks */,
+				51249E57C7F2527C0A3A4E24 /* TempoTests */,
 			);
 			sourceTree = "<group>";
 		};
 		300000000000000000000002 /* Tempo */ = {
 			isa = PBXGroup;
 			children = (
+				E131D87B2F497D4A007DB74A /* Tempo.entitlements */,
 				300000000000000000000004 /* App */,
 				300000000000000000000005 /* Models */,
 				300000000000000000000006 /* Engine */,
@@ -145,6 +181,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000000 /* Tempo.app */,
+				E572C1387B7F71918E542DF9 /* TempoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -165,7 +202,6 @@
 				100000000000000000000004 /* ScheduleItem.swift */,
 				100000000000000000000005 /* Change.swift */,
 				100000000000000000000006 /* ReshuffleResult.swift */,
-				100000000000000000000007 /* EveningDecision.swift */,
 				100000000000000000000041 /* CompensationRecord.swift */,
 				100000000000000000000046 /* RecurrenceFrequency.swift */,
 				7930B90A2F48EC6C0083955E /* AppAppearance.swift */,
@@ -179,7 +215,6 @@
 				300000000000000000000012 /* Processors */,
 				100000000000000000000018 /* OverflowDetector.swift */,
 				100000000000000000000019 /* ReshuffleEngine.swift */,
-				100000000000000000000020 /* EveningProtectionAnalyzer.swift */,
 				100000000000000000000021 /* SummaryGenerator.swift */,
 			);
 			path = Engine;
@@ -279,6 +314,7 @@
 			children = (
 				100000000000000000000022 /* CategoryBadge.swift */,
 				100000000000000000000023 /* ConfirmationSheet.swift */,
+				100000000000000000000047 /* SleepOverlapSheet.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -289,6 +325,7 @@
 				100000000000000000000036 /* SleepManager.swift */,
 				100000000000000000000042 /* CompensationTracker.swift */,
 				100000000000000000000045 /* NotificationService.swift */,
+				79B448AE2F48DA1B0092638B /* CalendarService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -298,6 +335,7 @@
 			children = (
 				100000000000000000000037 /* SleepSettingsView.swift */,
 				100000000000000000000044 /* SettingsMenuView.swift */,
+				79B448AC2F48D9770092638B /* CalendarImportView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -308,6 +346,34 @@
 				100000000000000000000043 /* CompensationView.swift */,
 			);
 			path = Compensation;
+			sourceTree = "<group>";
+		};
+		51249E57C7F2527C0A3A4E24 /* TempoTests */ = {
+			isa = PBXGroup;
+			children = (
+				25D9B54E1041EF2BFB78E78C /* CriticalScenarioTests.swift */,
+				6E548CA394FD65D86A6152E7 /* SummaryGeneratorTests.swift */,
+				EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */,
+				DE35872014EFE6647A0DC12B /* ProcessorTests.swift */,
+			);
+			name = TempoTests;
+			path = TempoTests;
+			sourceTree = "<group>";
+		};
+		6123CFBB90DC8B4097C93CEF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D289E785A8CBE47A97D27631 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D289E785A8CBE47A97D27631 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				4B5E52B6C7052E17C8DB4289 /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		E180D2A42F338FE0006FC0B0 /* Recovered References */ = {
@@ -338,6 +404,24 @@
 			productReference = 100000000000000000000000 /* Tempo.app */;
 			productType = "com.apple.product-type.application";
 		};
+		404286255FBC0CE0037EB039 /* TempoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5B8BB546024500DFC5BA7BFE /* Build configuration list for PBXNativeTarget "TempoTests" */;
+			buildPhases = (
+				3DDC332EB90DB63F602F589E /* Sources */,
+				A1B737EB0DDFE41ECCF8874F /* Frameworks */,
+				9DCC2BE7D6D990E92AD8CAB8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				442A1E94B330AE53BB2EC5AC /* PBXTargetDependency */,
+			);
+			name = TempoTests;
+			productName = TempoTests;
+			productReference = E572C1387B7F71918E542DF9 /* TempoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -367,6 +451,7 @@
 			projectRoot = "";
 			targets = (
 				400000000000000000000001 /* Tempo */,
+				404286255FBC0CE0037EB039 /* TempoTests */,
 			);
 		};
 /* End PBXProject section */
@@ -376,14 +461,33 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E131D87D2F497E3F007DB74A /* PrivacyInfo.xcprivacy in Resources */,
 				000000000000000000000034 /* Assets.xcassets in Resources */,
 				000000000000000000000035 /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9DCC2BE7D6D990E92AD8CAB8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3DDC332EB90DB63F602F589E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				01BB4002DE04FFFA26353818 /* CriticalScenarioTests.swift in Sources */,
+				FB8199F254B18929D95D3E19 /* SummaryGeneratorTests.swift in Sources */,
+				EF61B8A9B20B29A83DCA5CB1 /* ReshuffleEngineTests.swift in Sources */,
+				72BA05E070F074D7E3D277A8 /* ProcessorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		400000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -394,7 +498,7 @@
 				000000000000000000000004 /* ScheduleItem.swift in Sources */,
 				000000000000000000000005 /* Change.swift in Sources */,
 				000000000000000000000006 /* ReshuffleResult.swift in Sources */,
-				000000000000000000000007 /* EveningDecision.swift in Sources */,
+				79B448AD2F48D9770092638B /* CalendarImportView.swift in Sources */,
 				000000000000000000000008 /* Constants.swift in Sources */,
 				000000000000000000000009 /* DateExtensions.swift in Sources */,
 				000000000000000000000010 /* TimeCalculations.swift in Sources */,
@@ -407,11 +511,12 @@
 				000000000000000000000016 /* FlexibleTaskProcessor.swift in Sources */,
 				000000000000000000000017 /* OptionalGoalProcessor.swift in Sources */,
 				000000000000000000000018 /* OverflowDetector.swift in Sources */,
+				79B448B02F48DA520092638B /* CalendarService.swift in Sources */,
 				000000000000000000000019 /* ReshuffleEngine.swift in Sources */,
-				000000000000000000000020 /* EveningProtectionAnalyzer.swift in Sources */,
 				000000000000000000000021 /* SummaryGenerator.swift in Sources */,
 				000000000000000000000022 /* CategoryBadge.swift in Sources */,
 				000000000000000000000023 /* ConfirmationSheet.swift in Sources */,
+				000000000000000000000047 /* SleepOverlapSheet.swift in Sources */,
 				000000000000000000000026 /* ScheduleView.swift in Sources */,
 				000000000000000000000027 /* CategoryPicker.swift in Sources */,
 				000000000000000000000028 /* TaskEditView.swift in Sources */,
@@ -434,7 +539,31 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		442A1E94B330AE53BB2EC5AC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Tempo;
+			target = 400000000000000000000001 /* Tempo */;
+			targetProxy = B8897AE856DC7E393E1CEB7B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		198038763720CBC74CBF5572 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_IDENTIFIER = com.ashishkattamuri.Tempo.Tests;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tempo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tempo";
+			};
+			name = Debug;
+		};
 		500000000000000000000004 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -559,8 +688,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
@@ -590,8 +720,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
@@ -616,6 +747,22 @@
 			};
 			name = Release;
 		};
+		8DBB685D159F9ECBFF4EBBCC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_IDENTIFIER = com.ashishkattamuri.Tempo.Tests;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tempo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tempo";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -633,6 +780,15 @@
 			buildConfigurations = (
 				500000000000000000000006 /* Debug */,
 				500000000000000000000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5B8BB546024500DFC5BA7BFE /* Build configuration list for PBXNativeTarget "TempoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8DBB685D159F9ECBFF4EBBCC /* Release */,
+				198038763720CBC74CBF5572 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -63,12 +63,14 @@ struct Change: Identifiable, Equatable {
         let id: UUID
         let title: String
         let description: String
+        let newStartTime: Date?
         let action: () -> Void
 
-        init(id: UUID = UUID(), title: String, description: String, action: @escaping () -> Void = {}) {
+        init(id: UUID = UUID(), title: String, description: String, newStartTime: Date? = nil, action: @escaping () -> Void = {}) {
             self.id = id
             self.title = title
             self.description = description
+            self.newStartTime = newStartTime
             self.action = action
         }
 

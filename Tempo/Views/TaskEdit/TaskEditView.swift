@@ -26,6 +26,7 @@ struct TaskEditView: View {
     @State private var showingDatePicker = false
     @State private var scheduledDate: Date = Date()
     @State private var hasInitialized = false
+    @State private var showingRecurringEditScope = false
 
     // Recurrence state
     @State private var isRecurring: Bool = false
@@ -108,6 +109,23 @@ struct TaskEditView: View {
             ) {
                 Button("Delete", role: .destructive, action: deleteItem)
                 Button("Cancel", role: .cancel) {}
+            }
+            .sheet(isPresented: $showingRecurringEditScope) {
+                RecurringEditScopeSheet(
+                    onThisOnly: {
+                        showingRecurringEditScope = false
+                        performSave(scope: .thisOnly)
+                    },
+                    onThisAndFuture: {
+                        showingRecurringEditScope = false
+                        performSave(scope: .thisAndFuture)
+                    },
+                    onCancel: {
+                        showingRecurringEditScope = false
+                    }
+                )
+                .presentationDetents([.height(260)])
+                .presentationDragIndicator(.visible)
             }
         }
     }
@@ -455,28 +473,29 @@ struct TaskEditView: View {
     }
 
     private func save() {
+        guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
+        // If editing a recurring item, ask user for scope before saving
+        if let existingItem = item, existingItem.isRecurring || existingItem.isRecurrenceInstance {
+            showingRecurringEditScope = true
+            return
+        }
+
+        performSave(scope: .thisOnly)
+    }
+
+    private func performSave(scope: RecurringEditScope) {
         let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
 
-        // Combine scheduledDate with startTime to ensure correct date component
         let combinedStartTime = combineDateAndTime(date: scheduledDate, time: startTime)
 
         if let existingItem = item {
-            existingItem.title = trimmedTitle
-            existingItem.category = category
-            existingItem.startTime = combinedStartTime
-            existingItem.durationMinutes = durationMinutes
-            existingItem.minimumDurationMinutes = category == .identityHabit ? minimumDurationMinutes : nil
-            existingItem.notes = notes.isEmpty ? nil : notes
-            existingItem.scheduledDate = scheduledDate
-            existingItem.isEveningTask = isEveningTask
-            existingItem.isGentleTask = isGentleTask
-            existingItem.isRecurring = isRecurring
-            existingItem.frequency = frequency
-            existingItem.timesPerWeek = frequency == .weekly ? recurrenceDays.count : nil
-            existingItem.recurrenceDays = recurrenceDays
-            existingItem.recurrenceEndDate = recurrenceEndDate
-            existingItem.touch()
+            applyChanges(to: existingItem, newStartTime: combinedStartTime, newScheduledDate: scheduledDate)
+
+            if scope == .thisAndFuture {
+                applyEditsToFutureInstances(from: existingItem, newStartTime: combinedStartTime)
+            }
 
             onSave(existingItem)
         } else {
@@ -499,12 +518,74 @@ struct TaskEditView: View {
 
             modelContext.insert(newItem)
 
-            // Generate recurring instances if needed
             if isRecurring && !recurrenceDays.isEmpty {
                 generateRecurringInstances(for: newItem)
             }
 
             onSave(newItem)
+        }
+    }
+
+    /// Applies form values to a single item
+    private func applyChanges(to target: ScheduleItem, newStartTime: Date, newScheduledDate: Date) {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
+        target.title = trimmedTitle
+        target.category = category
+        target.startTime = newStartTime
+        target.durationMinutes = durationMinutes
+        target.minimumDurationMinutes = category == .identityHabit ? minimumDurationMinutes : nil
+        target.notes = notes.isEmpty ? nil : notes
+        target.scheduledDate = newScheduledDate
+        target.isEveningTask = isEveningTask
+        target.isGentleTask = isGentleTask
+        target.isRecurring = isRecurring
+        target.frequency = frequency
+        target.timesPerWeek = frequency == .weekly ? recurrenceDays.count : nil
+        target.recurrenceDays = recurrenceDays
+        target.recurrenceEndDate = recurrenceEndDate
+        target.touch()
+    }
+
+    /// Updates all future instances of the same recurring task
+    private func applyEditsToFutureInstances(from editedItem: ScheduleItem, newStartTime: Date) {
+        let parentId = editedItem.isRecurrenceInstance ? editedItem.parentTaskId : editedItem.id
+        guard let parentId else { return }
+
+        let editedDate = editedItem.scheduledDate
+        let timeComponents = Calendar.current.dateComponents([.hour, .minute], from: newStartTime)
+        let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
+
+        let descriptor = FetchDescriptor<ScheduleItem>()
+        guard let allItems = try? modelContext.fetch(descriptor) else { return }
+
+        let futureItems = allItems.filter { candidate in
+            guard candidate.id != editedItem.id else { return false }
+            guard candidate.scheduledDate >= editedDate else { return false }
+            if candidate.isRecurrenceInstance {
+                return candidate.parentTaskId == parentId
+            } else {
+                return candidate.id == parentId
+            }
+        }
+
+        for future in futureItems {
+            future.title = trimmedTitle
+            future.category = category
+            future.durationMinutes = durationMinutes
+            future.minimumDurationMinutes = category == .identityHabit ? minimumDurationMinutes : nil
+            future.notes = notes.isEmpty ? nil : notes
+            future.isEveningTask = isEveningTask
+            future.isGentleTask = isGentleTask
+
+            // Preserve each instance's own date, only update the time
+            var comps = Calendar.current.dateComponents([.year, .month, .day], from: future.scheduledDate)
+            comps.hour = timeComponents.hour
+            comps.minute = timeComponents.minute
+            if let newStart = Calendar.current.date(from: comps) {
+                future.startTime = newStart
+            }
+
+            future.touch()
         }
     }
 
@@ -549,6 +630,72 @@ struct TaskEditView: View {
         guard let item = item else { return }
         modelContext.delete(item)
         dismiss()
+    }
+}
+
+// MARK: - Recurring Edit Scope
+
+private enum RecurringEditScope {
+    case thisOnly
+    case thisAndFuture
+}
+
+/// Sheet asking the user whether edits should apply to this event only or all future events
+struct RecurringEditScopeSheet: View {
+    let onThisOnly: () -> Void
+    let onThisAndFuture: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 20) {
+            VStack(spacing: 6) {
+                Text("Edit Recurring Task")
+                    .font(.headline)
+                Text("Apply changes to just this event or all future events?")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top, 8)
+
+            VStack(spacing: 12) {
+                Button(action: onThisOnly) {
+                    HStack {
+                        Image(systemName: "calendar")
+                        Text("This event only")
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onThisAndFuture) {
+                    HStack {
+                        Image(systemName: "calendar.badge.clock")
+                        Text("This and all future events")
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.accentColor.opacity(0.12))
+                    .foregroundColor(.accentColor)
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
     }
 }
 

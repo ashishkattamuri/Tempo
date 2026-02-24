@@ -22,9 +22,6 @@ final class ReshuffleViewModel {
     // User decisions for items requiring input
     var userDecisions: [UUID: Change.UserOption] = [:]
 
-    // Evening protection consent
-    var eveningConsentGiven = false
-
     // MARK: - Computed Properties
 
     var hasResult: Bool {
@@ -48,11 +45,6 @@ final class ReshuffleViewModel {
             if userDecisions[change.item.id] == nil {
                 return false
             }
-        }
-
-        // Check evening consent if needed
-        if result.eveningProtectionTriggered && !eveningConsentGiven {
-            return false
         }
 
         return true
@@ -82,7 +74,6 @@ final class ReshuffleViewModel {
         isAnalyzing = true
         error = nil
         userDecisions = [:]
-        eveningConsentGiven = false
 
         // Run analysis
         result = engine.analyze(items: items, for: date)
@@ -98,14 +89,6 @@ final class ReshuffleViewModel {
 
     func clearDecision(for itemId: UUID) {
         userDecisions.removeValue(forKey: itemId)
-    }
-
-    func giveEveningConsent() {
-        eveningConsentGiven = true
-    }
-
-    func revokeEveningConsent() {
-        eveningConsentGiven = false
     }
 
     // MARK: - Apply Changes
@@ -144,7 +127,6 @@ final class ReshuffleViewModel {
     func reset() {
         result = nil
         userDecisions = [:]
-        eveningConsentGiven = false
         error = nil
     }
 

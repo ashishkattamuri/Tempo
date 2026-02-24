@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// View displaying proposed reshuffle changes for user approval.
+/// View displaying proposed schedule adjustments for user approval.
 struct ReshuffleProposalView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allItems: [ScheduleItem]
@@ -12,8 +12,9 @@ struct ReshuffleProposalView: View {
 
     @State private var result: ReshuffleResult?
     @State private var isLoading = true
-    @State private var showingEveningSheet = false
-    @State private var showingConfirmation = false
+    @State private var skippedChangeIds: Set<UUID> = []
+    /// Maps a `.requiresUserDecision` Change ID → the option the user tapped.
+    @State private var selectedOptionByChangeId: [UUID: Change.UserOption] = [:]
 
     private var itemsForDate: [ScheduleItem] {
         allItems.filter { $0.scheduledDate.isSameDay(as: selectedDate) }
@@ -25,16 +26,16 @@ struct ReshuffleProposalView: View {
                 if isLoading {
                     loadingView
                 } else if let result = result {
-                    if result.changes.isEmpty {
-                        noChangesView
-                    } else {
+                    if hasActionableChanges(result) {
                         proposalContent(result)
+                    } else {
+                        noChangesView
                     }
                 } else {
                     errorView
                 }
             }
-            .navigationTitle("Reshuffle Proposal")
+            .navigationTitle("Fix My Day")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -42,55 +43,32 @@ struct ReshuffleProposalView: View {
                 }
             }
             .onAppear(perform: analyzeSchedule)
-            .sheet(isPresented: $showingEveningSheet) {
-                if let decision = result?.eveningDecision {
-                    EveningProtectionSheet(
-                        decision: decision,
-                        onKeepFree: {
-                            showingEveningSheet = false
-                            // Keep evening free - don't apply evening changes
-                        },
-                        onAllow: {
-                            showingEveningSheet = false
-                            // Allow evening tasks
-                        }
-                    )
-                }
-            }
-            .confirmationDialog(
-                "Apply these changes?",
-                isPresented: $showingConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Apply Changes", action: applyChanges)
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will adjust your schedule as shown. You can always undo by editing tasks manually.")
-            }
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - States
 
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
-                .scaleEffect(1.5)
-
-            Text("Analyzing your schedule...")
+                .scaleEffect(1.4)
+            Text("Looking at your schedule...")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var noChangesView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.green)
+                .font(.system(size: 56))
+                .foregroundColor(.green)
 
-            Text("You're on track!")
-                .font(.headline)
+            VStack(spacing: 6) {
+                Text("You're all set")
+                    .font(.title3)
+                    .fontWeight(.semibold)
 
             Text("No changes needed for today's schedule.")
                 .font(.subheadline)
@@ -99,200 +77,234 @@ struct ReshuffleProposalView: View {
 
             Button("Done", action: onCancel)
                 .buttonStyle(.borderedProminent)
-                .padding(.top)
+                .padding(.top, 4)
         }
-        .padding()
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var errorView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 64))
-                .foregroundStyle(.orange)
-
-            Text("Couldn't analyze schedule")
-                .font(.headline)
-
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            Text("Couldn't read your schedule")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             Button("Try Again", action: analyzeSchedule)
                 .buttonStyle(.bordered)
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    // MARK: - Proposal Content
 
     private func proposalContent(_ result: ReshuffleResult) -> some View {
         VStack(spacing: 0) {
-            // Summary header
-            summaryHeader(result)
-
-            // Changes list
-            ScrollView {
-                LazyVStack(spacing: 0, pinnedViews: .sectionHeaders) {
-                    // Items requiring decision first
-                    if !result.itemsRequiringDecision.isEmpty {
-                        Section {
-                            ForEach(result.itemsRequiringDecision) { change in
-                                UserDecisionView(
-                                    change: change,
-                                    onSelectOption: { option in
-                                        // Handle user choice
-                                    }
-                                )
-                                .padding(.horizontal)
-                                .padding(.vertical, 8)
-                            }
-                        } header: {
-                            sectionHeader(
-                                title: "Needs Your Input",
-                                count: result.itemsRequiringDecision.count,
-                                icon: "exclamationmark.triangle.fill",
-                                color: .orange
-                            )
-                        }
-                    }
-
-                    // Protected items
-                    if !result.protectedChanges.isEmpty {
-                        Section {
-                            ForEach(result.protectedChanges) { change in
-                                ChangeRowView(change: change)
-                                    .padding(.horizontal)
-                            }
-                        } header: {
-                            sectionHeader(
-                                title: "Protected",
-                                count: result.protectedCount,
-                                icon: "shield.fill",
-                                color: .green
-                            )
-                        }
-                    }
-
-                    // Adjusted items
-                    if !result.resizedChanges.isEmpty {
-                        Section {
-                            ForEach(result.resizedChanges) { change in
-                                ChangeRowView(change: change)
-                                    .padding(.horizontal)
-                            }
-                        } header: {
-                            sectionHeader(
-                                title: "Adjusted",
-                                count: result.resizedCount,
-                                icon: "arrow.down.right.and.arrow.up.left",
-                                color: .orange
-                            )
-                        }
-                    }
-
-                    // Moved items
-                    let movedOnly = result.movedChanges.filter {
-                        if case .moved = $0.action { return true }
-                        return false
-                    }
-                    if !movedOnly.isEmpty {
-                        Section {
-                            ForEach(movedOnly) { change in
-                                ChangeRowView(change: change)
-                                    .padding(.horizontal)
-                            }
-                        } header: {
-                            sectionHeader(
-                                title: "Moved",
-                                count: movedOnly.count,
-                                icon: "arrow.right",
-                                color: .blue
-                            )
-                        }
-                    }
-
-                    // Deferred items
-                    if !result.deferredChanges.isEmpty {
-                        Section {
-                            ForEach(result.deferredChanges) { change in
-                                ChangeRowView(change: change)
-                                    .padding(.horizontal)
-                            }
-                        } header: {
-                            sectionHeader(
-                                title: "Deferred",
-                                count: result.deferredCount,
-                                icon: "calendar.badge.clock",
-                                color: .purple
-                            )
-                        }
-                    }
-                }
-                .padding(.bottom, 100) // Space for bottom bar
-            }
-
-            // Bottom action bar
+            statBar(result)
+            Divider()
+            changesList(result)
             actionBar(result)
         }
     }
 
-    private func summaryHeader(_ result: ReshuffleResult) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(result.summary)
-                .font(.subheadline)
-           .foregroundStyle(.secondary)
+    /// A compact row of chips summarising the counts (Moved · Adjusted · Deferred)
+    private func statBar(_ result: ReshuffleResult) -> some View {
+        let movedOnly = result.movedChanges.filter { if case .moved = $0.action { return true }; return false }
+        let chips: [(String, String, Color)] = [
+            ("arrow.right.circle.fill", "\(movedOnly.count) to reschedule", .blue),
+            ("arrow.down.right.and.arrow.up.left", "\(result.resizedCount) to shorten", .orange),
+            ("calendar.badge.clock",  "\(result.deferredCount) to defer",   .purple),
+        ].filter { $0.1.first != "0" }   // hide zero-count chips
 
-            if result.timeSavedMinutes > 0 {
-                HStack {
-                    Image(systemName: "clock.badge.checkmark")
-                    Text("\(result.timeSavedMinutes) minutes saved through adjustments")
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(chips, id: \.1) { icon, label, color in
+                    Label(label, systemImage: icon)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(color)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(color.opacity(0.12))
+                        .clipShape(Capsule())
                 }
-                .font(.caption)
-                .foregroundStyle(.green)
             }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+        }
+        .background(Color(.systemBackground))
+    }
 
-            if result.eveningProtectionTriggered {
-                HStack {
-                    Image(systemName: "moon.fill")
-                    Text("Evening protection active")
+    private func changesList(_ result: ReshuffleResult) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 0, pinnedViews: .sectionHeaders) {
+
+                // Items requiring user decision — rendered as UserDecisionView cards
+                if !result.itemsRequiringDecision.isEmpty {
+                    decisionSection(result.itemsRequiringDecision)
+                }
+
+                // Moved items
+                let movedOnly = result.movedChanges.filter {
+                    if case .moved = $0.action { return true }; return false
+                }
+                if !movedOnly.isEmpty {
+                    changeSection(
+                        title: "Reschedule to Later Today",
+                        icon: "arrow.right.circle.fill",
+                        color: .blue,
+                        changes: movedOnly
+                    )
+                }
+
+                // Adjusted (resized) items
+                if !result.resizedChanges.isEmpty {
+                    changeSection(
+                        title: "Shorten Slightly",
+                        icon: "arrow.down.right.and.arrow.up.left",
+                        color: .orange,
+                        changes: result.resizedChanges
+                    )
+                }
+
+                // Deferred items
+                if !result.deferredChanges.isEmpty {
+                    changeSection(
+                        title: "Defer to Tomorrow",
+                        icon: "calendar.badge.clock",
+                        color: .purple,
+                        changes: result.deferredChanges
+                    )
+                }
+            }
+            .padding(.bottom, 100)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
+    private func decisionSection(_ changes: [Change]) -> some View {
+        Section {
+            VStack(spacing: 12) {
+                ForEach(changes) { change in
+                    UserDecisionView(
+                        change: change,
+                        selectedOptionId: selectedOptionByChangeId[change.id]?.id
+                    ) { option in
+                        // Store the tapped option for apply-time resolution
+                        selectedOptionByChangeId[change.id] = option
+                    }
+                    .padding(.horizontal, 16)
                 }
                 .font(.caption)
                 .foregroundStyle(.purple)
             }
+            .padding(.vertical, 8)
+        } header: {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                Text("Needs Your Input")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(Color(.systemGroupedBackground))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.systemGray6))
     }
 
-    private func sectionHeader(title: String, count: Int, icon: String, color: Color) -> some View {
-        ChangeSectionHeader(title: title, count: count, iconName: icon, color: color)
-            .padding()
+    private func changeSection(title: String, icon: String, color: Color, changes: [Change]) -> some View {
+        Section {
+            VStack(spacing: 0) {
+                ForEach(changes) { change in
+                    ChangeRowView(
+                        change: change,
+                        isSkipped: skippedChangeIds.contains(change.id),
+                        onToggle: {
+                            if skippedChangeIds.contains(change.id) {
+                                skippedChangeIds.remove(change.id)
+                            } else {
+                                skippedChangeIds.insert(change.id)
+                            }
+                        }
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    if change.id != changes.last?.id {
+                        Divider().padding(.leading, 60)
+                    }
+                }
+            }
             .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        } header: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(Color(.systemGroupedBackground))
+        }
     }
 
     private func actionBar(_ result: ReshuffleResult) -> some View {
-        VStack(spacing: 0) {
+        let actionable = result.changes.filter { if case .protected = $0.action { return false }; return true }
+        let selectedCount = actionable.filter { !skippedChangeIds.contains($0.id) }.count
+        let hasSkipped = !skippedChangeIds.isEmpty && skippedChangeIds.intersection(Set(actionable.map(\.id))).count > 0
+
+        return VStack(spacing: 0) {
             Divider()
-
-            HStack(spacing: 16) {
-                // Cancel button
-                Button(action: onCancel) {
-                    Text("Cancel")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(.systemGray5))
-                        .foregroundStyle(.primary)
-                        .cornerRadius(Constants.cornerRadius)
-                }
-                .buttonStyle(.plain)
-
-                // Apply button
-                Button(action: {
-                    if result.eveningProtectionTriggered {
-                        showingEveningSheet = true
-                    } else {
-                        showingConfirmation = true
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    Button(action: onCancel) {
+                        Text("Not Now")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color(.systemGray5))
+                            .foregroundColor(.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                }) {
-                    HStack {
-                        Image(systemName: "checkmark")
-                        Text("Apply Changes")
+                    .buttonStyle(.plain)
+
+                    Button(action: {
+                        applyChanges(actionable.filter { !skippedChangeIds.contains($0.id) })
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "wand.and.stars")
+                            Text(hasSkipped ? "Apply (\(selectedCount))" : "Apply All")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(selectedCount > 0 ? Color.accentColor : Color(.systemGray4))
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(selectedCount == 0)
+                }
+
+                if hasSkipped {
+                    Button(action: { applyChanges(actionable) }) {
+                        Text("Apply all \(actionable.count) changes")
+                            .font(.caption)
+                            .foregroundColor(.accentColor)
                     }
                     .font(.headline)
                     .frame(maxWidth: .infinity)
@@ -301,11 +313,19 @@ struct ReshuffleProposalView: View {
                    .foregroundStyle(.white)
                     .cornerRadius(Constants.cornerRadius)
                 }
-                .buttonStyle(.plain)
-                .disabled(result.requiresUserConsent)
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(Color(.systemBackground))
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func hasActionableChanges(_ result: ReshuffleResult) -> Bool {
+        result.changes.contains { change in
+            if case .protected = change.action { return false }
+            return true
         }
     }
 
@@ -313,24 +333,62 @@ struct ReshuffleProposalView: View {
 
     private func analyzeSchedule() {
         isLoading = true
-
-        // Run analysis
         Task { @MainActor in
             let engine = ReshuffleEngine()
-            result = engine.analyze(
-                items: itemsForDate,
-                for: selectedDate
-            )
+            // Pass ALL items so the engine can find real free slots on future days
+            result = engine.analyze(items: Array(allItems), for: selectedDate)
             isLoading = false
         }
     }
 
-    private func applyChanges() {
-        guard let result = result else { return }
-
+    private func applyChanges(_ changes: [Change]) {
         Task { @MainActor in
             let repository = SwiftDataScheduleRepository(modelContext: modelContext)
-            try? await repository.applyChanges(result.changes)
+            var resolvedChanges: [Change] = []
+
+            for change in changes {
+                if case .requiresUserDecision = change.action {
+                    guard let selected = selectedOptionByChangeId[change.id] else {
+                        continue  // User made no decision — skip
+                    }
+
+                    if let newTime = selected.newStartTime {
+                        // Slot option — move the item to the chosen time
+                        resolvedChanges.append(Change(
+                            id: change.id,
+                            item: change.item,
+                            action: .moved(newStartTime: newTime),
+                            reason: change.reason
+                        ))
+                    } else if selected.title == "Defer to tomorrow" {
+                        // Defer option — keep the same clock time but on tomorrow's date
+                        let cal = Calendar.current
+                        let tomorrow = cal.date(byAdding: .day, value: 1, to: change.item.scheduledDate) ?? change.item.scheduledDate
+                        var comps = cal.dateComponents([.year, .month, .day], from: tomorrow)
+                        let timeComps = cal.dateComponents([.hour, .minute], from: change.item.startTime)
+                        comps.hour = timeComps.hour
+                        comps.minute = timeComps.minute
+                        let deferDate = cal.date(from: comps) ?? tomorrow
+                        resolvedChanges.append(Change(
+                            id: change.id,
+                            item: change.item,
+                            action: .deferred(newDate: deferDate),
+                            reason: change.reason
+                        ))
+                    } else if selected.title == "Mark as done" {
+                        // Complete the live SwiftData item directly
+                        if let liveItem = allItems.first(where: { $0.id == change.item.id }) {
+                            liveItem.isCompleted = true
+                            liveItem.touch()
+                        }
+                        // No Change entry needed — already mutated in place
+                    }
+                } else {
+                    resolvedChanges.append(change)
+                }
+            }
+
+            try? await repository.applyChanges(resolvedChanges)
             onApply()
         }
     }
