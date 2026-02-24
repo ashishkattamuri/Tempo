@@ -872,6 +872,9 @@ struct ScheduleView: View {
     private func toggleCompletion(_ item: ScheduleItem) {
         item.isCompleted.toggle()
         item.touch()
+        if item.isCompleted {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 
     private func scrollToRelevantTime(proxy: ScrollViewProxy) {
