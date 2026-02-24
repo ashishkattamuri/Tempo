@@ -28,6 +28,7 @@
 		000000000000000000000021 /* SummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000021 /* SummaryGenerator.swift */; };
 		000000000000000000000022 /* CategoryBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* CategoryBadge.swift */; };
 		000000000000000000000023 /* ConfirmationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* ConfirmationSheet.swift */; };
+		000000000000000000000047 /* SleepOverlapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000047 /* SleepOverlapSheet.swift */; };
 		000000000000000000000026 /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* ScheduleView.swift */; };
 		000000000000000000000027 /* CategoryPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000027 /* CategoryPicker.swift */; };
 		000000000000000000000028 /* TaskEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* TaskEditView.swift */; };
@@ -91,6 +92,7 @@
 		100000000000000000000021 /* SummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryGenerator.swift; sourceTree = "<group>"; };
 		100000000000000000000022 /* CategoryBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBadge.swift; sourceTree = "<group>"; };
 		100000000000000000000023 /* ConfirmationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmationSheet.swift; sourceTree = "<group>"; };
+		100000000000000000000047 /* SleepOverlapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepOverlapSheet.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* ScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleView.swift; sourceTree = "<group>"; };
 		100000000000000000000027 /* CategoryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryPicker.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* TaskEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskEditView.swift; sourceTree = "<group>"; };
@@ -311,6 +313,7 @@
 			children = (
 				100000000000000000000022 /* CategoryBadge.swift */,
 				100000000000000000000023 /* ConfirmationSheet.swift */,
+				100000000000000000000047 /* SleepOverlapSheet.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -511,6 +514,7 @@
 				000000000000000000000021 /* SummaryGenerator.swift in Sources */,
 				000000000000000000000022 /* CategoryBadge.swift in Sources */,
 				000000000000000000000023 /* ConfirmationSheet.swift in Sources */,
+				000000000000000000000047 /* SleepOverlapSheet.swift in Sources */,
 				000000000000000000000026 /* ScheduleView.swift in Sources */,
 				000000000000000000000027 /* CategoryPicker.swift in Sources */,
 				000000000000000000000028 /* TaskEditView.swift in Sources */,

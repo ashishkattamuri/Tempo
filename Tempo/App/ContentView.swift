@@ -24,6 +24,12 @@ struct ContentView: View {
     @State private var conflictResolutions: [ConflictResolution] = []
     @State private var savedItem: ScheduleItem?
 
+    // Sleep overlap state
+    @State private var showingSleepOverlap = false
+    @State private var sleepOverlapItem: ScheduleItem?
+    @State private var sleepEarlierSuggestion: Date?
+    @State private var sleepNextSlotSuggestion: Date?
+
     @State private var reshuffleEngine = ReshuffleEngine()
 
     var body: some View {
@@ -83,6 +89,32 @@ struct ContentView: View {
                     .presentationDragIndicator(.visible)
                 }
             }
+            .sheet(isPresented: $showingSleepOverlap) {
+                if let item = sleepOverlapItem {
+                    SleepOverlapSheet(
+                        item: item,
+                        earlierTime: sleepEarlierSuggestion,
+                        nextAvailableTime: sleepNextSlotSuggestion,
+                        onMoveEarlier: {
+                            if let newTime = sleepEarlierSuggestion {
+                                applySleepSuggestion(to: item, newStartTime: newTime)
+                            }
+                            showingSleepOverlap = false
+                        },
+                        onMoveToNextSlot: {
+                            if let newTime = sleepNextSlotSuggestion {
+                                applySleepSuggestion(to: item, newStartTime: newTime)
+                            }
+                            showingSleepOverlap = false
+                        },
+                        onKeep: {
+                            showingSleepOverlap = false
+                        }
+                    )
+                    .presentationDetents([.height(320)])
+                    .presentationDragIndicator(.visible)
+                }
+            }
             .sheet(isPresented: $showingReshuffle) {
                 ReshuffleProposalView(
                     selectedDate: selectedDate,
@@ -137,14 +169,62 @@ struct ContentView: View {
 
         if !conflicts.isEmpty {
             savedItem = newItem
-            // Pass all items so the engine can find truly empty slots
             conflictResolutions = reshuffleEngine.suggestResolution(
                 newItem: newItem,
                 conflictingItems: conflicts,
                 allItems: Array(allItems)
             )
             showingConflictResolution = true
+            return
         }
+
+        // No task conflict — check for sleep overlap
+        checkForSleepOverlap(newItem: newItem)
+    }
+
+    private func checkForSleepOverlap(newItem: ScheduleItem) {
+        guard sleepManager.isEnabled else { return }
+        guard sleepManager.doesRangeOverlapSleep(start: newItem.startTime, end: newItem.endTime) else { return }
+
+        guard let range = sleepManager.getSleepBlockedRange(for: newItem.scheduledDate) else { return }
+
+        // Suggest moving earlier: end the task right at buffer start
+        let earlierStart = range.bufferStart.addingTimeInterval(-Double(newItem.durationMinutes * 60))
+        let calendar = Calendar.current
+        let dayStart = calendar.date(bySettingHour: 5, minute: 0, second: 0, of: newItem.scheduledDate) ?? newItem.scheduledDate
+        // Only suggest earlier if it's still in the future and after the day start
+        sleepEarlierSuggestion = (earlierStart >= dayStart && earlierStart > Date()) ? earlierStart : nil
+
+        // Suggest moving to first free slot after wake time
+        sleepNextSlotSuggestion = findFirstFreeSlotAfterWake(wakeTime: range.wakeTime, durationMinutes: newItem.durationMinutes)
+
+        sleepOverlapItem = newItem
+        showingSleepOverlap = true
+    }
+
+    /// Returns the first start time after `wakeTime` where `durationMinutes` fit without overlapping existing items.
+    private func findFirstFreeSlotAfterWake(wakeTime: Date, durationMinutes: Int) -> Date {
+        let wakeDay = Calendar.current.startOfDay(for: wakeTime)
+        let duration = TimeInterval(durationMinutes * 60)
+        let itemsOnWakeDay = allItems
+            .filter { $0.scheduledDate.isSameDay(as: wakeDay) && !$0.isCompleted }
+            .sorted { $0.startTime < $1.startTime }
+        var candidate = wakeTime
+        for item in itemsOnWakeDay {
+            if item.endTime <= candidate { continue }
+            if item.startTime >= candidate.addingTimeInterval(duration) { break }
+            candidate = item.endTime
+        }
+        return candidate
+    }
+
+    private func applySleepSuggestion(to item: ScheduleItem, newStartTime: Date) {
+        guard let liveItem = allItems.first(where: { $0.id == item.id }) else { return }
+        liveItem.startTime = newStartTime
+        liveItem.scheduledDate = Calendar.current.startOfDay(for: newStartTime)
+        liveItem.touch()
+        try? modelContext.save()
+        sleepOverlapItem = nil
     }
 
     private func applyResolution(_ resolution: ConflictResolution, action: ConflictAction) {
