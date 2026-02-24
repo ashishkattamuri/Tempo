@@ -10,6 +10,7 @@ struct ConflictResolutionData: Identifiable {
 /// Main daily schedule view - Structured-inspired timeline design.
 struct ScheduleView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sleepManager: SleepManager
     @Binding var selectedDate: Date
     let onAddTask: () -> Void
     let onEditTask: (ScheduleItem) -> Void
@@ -455,6 +456,9 @@ struct ScheduleView: View {
                         .allowsHitTesting(false)
                 }
 
+                // Sleep boundary overlay
+                sleepBoundaryOverlay(totalHeight: totalHeight)
+
                 // Gap indicators
                 ForEach(calculateGaps().filter { $0.durationMinutes >= 30 && $0.durationMinutes <= 300 }, id: \.start) { gap in
                     gapIndicatorView(gap: gap)
@@ -529,6 +533,71 @@ struct ScheduleView: View {
         let now = Date()
         let minutesSinceStart = (now.hour - startHour) * 60 + now.minute
         return CGFloat(minutesSinceStart) / 60.0 * hourHeight
+    }
+
+    // MARK: - Sleep Boundary Overlay
+
+    @ViewBuilder
+    private func sleepBoundaryOverlay(totalHeight: CGFloat) -> some View {
+        if sleepManager.isEnabled,
+           let range = sleepManager.getSleepBlockedRange(for: selectedDate) {
+
+            let rawWakeY  = yPositionFromTime(range.wakeTime)
+            let rawBedY   = yPositionFromTime(range.bedtime)
+            let wakeY     = max(0, min(totalHeight, rawWakeY))
+            let bedY      = max(0, min(totalHeight, rawBedY))
+
+            // Morning sleep block: top of timeline → wake time
+            if wakeY > 0 {
+                // Shaded region
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.07))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: wakeY)
+                    .allowsHitTesting(false)
+
+                // Boundary line at wake time
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.3))
+                    .frame(maxWidth: .infinity, maxHeight: 1)
+                    .offset(y: wakeY)
+                    .allowsHitTesting(false)
+
+                // Wake time label
+                Label(sleepManager.sleepSchedule?.wakeTimeString ?? "", systemImage: "sunrise.fill")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.indigo.opacity(0.7))
+                    .offset(x: 10, y: wakeY + 3)
+                    .allowsHitTesting(false)
+            }
+
+            // Evening sleep block: bedtime → end of timeline
+            if bedY < totalHeight {
+                // Shaded region
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.07))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: totalHeight - bedY)
+                    .offset(y: bedY)
+                    .allowsHitTesting(false)
+
+                // Boundary line at bedtime
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.3))
+                    .frame(maxWidth: .infinity, maxHeight: 1)
+                    .offset(y: bedY)
+                    .allowsHitTesting(false)
+
+                // Bedtime label
+                Label(sleepManager.sleepSchedule?.bedtimeString ?? "", systemImage: "moon.fill")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.indigo.opacity(0.7))
+                    .offset(x: 10, y: bedY + 4)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     // MARK: - Gap Indicators
