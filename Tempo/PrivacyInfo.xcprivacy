@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+	<!-- Tempo does not track users across apps or websites -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- No tracking domains -->
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- No data is collected, transmitted, or shared externally.
+	     All schedule data is stored locally on device via SwiftData. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<!-- Required reason APIs used by Tempo -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+
+		<!-- File timestamp APIs: SwiftData reads/writes its own database files -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- C617.1: App accesses timestamps of files it created on device -->
+				<string>C617.1</string>
+			</array>
+		</dict>
+
+		<!-- User Defaults: used by CompensationTracker and SleepManager
+		     to persist lightweight app preferences locally -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- 1C8F.1: App reads/writes its own user defaults -->
+				<string>1C8F.1</string>
+			</array>
+		</dict>
+
+	</array>
+
+</dict>
+</plist>

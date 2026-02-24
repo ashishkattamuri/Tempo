@@ -2,7 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+	<!-- HealthKit: read sleep data to avoid scheduling tasks during rest time -->
 	<key>NSHealthShareUsageDescription</key>
-	<string>Tempo reads your sleep schedule to avoid scheduling tasks during your rest time.</string>
+	<string>Tempo reads your sleep schedule from Apple Health to avoid scheduling tasks during your rest time.</string>
+
+	<!-- Required by Apple whenever HealthKit authorization is requested, even for read-only access -->
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Tempo does not write any data to Apple Health.</string>
+
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Tempo imports your Apple Calendar events as non-negotiable tasks to protect your commitments.</string>
+
+	<key>NSCalendarsUsageDescription</key>
+	<string>Tempo imports your Apple Calendar events as non-negotiable tasks to protect your commitments.</string>
+
+	<!-- Declares that this app uses no non-exempt encryption, skipping export compliance questions -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 </dict>
 </plist>

@@ -10,6 +10,7 @@ struct ConflictResolutionData: Identifiable {
 /// Main daily schedule view - Structured-inspired timeline design.
 struct ScheduleView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sleepManager: SleepManager
     @Binding var selectedDate: Date
     let onAddTask: () -> Void
     let onEditTask: (ScheduleItem) -> Void
@@ -24,6 +25,11 @@ struct ScheduleView: View {
     @State private var conflictData: ConflictResolutionData?
     @State private var savedItem: ScheduleItem?
     @State private var pendingConflictCheck: ScheduleItem?
+
+    // Sleep overlap state (for tasks created via timeline tap)
+    @State private var sleepOverlapItem: ScheduleItem?
+    @State private var sleepEarlierSuggestion: Date?
+    @State private var sleepNextSlotSuggestion: Date?
 
     private let startHour = 5   // 5 AM
     private let endHour = 24    // Midnight
@@ -126,10 +132,22 @@ struct ScheduleView: View {
         return engine.hasIssues(items: itemsForSelectedDate, for: selectedDate)
     }
 
+    /// True when today is selected and at least one incomplete task's start time has passed.
+    private var hasPastIncompleteItems: Bool {
+        guard selectedDate.isToday else { return false }
+        let now = Date()
+        return itemsForSelectedDate.contains { !$0.isCompleted && $0.startTime < now }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Week calendar header
             weekCalendarHeader
+
+            // "Fix My Day" banner — visible when today has past incomplete tasks
+            if hasPastIncompleteItems {
+                fixMyDayBanner
+            }
 
             // Timeline content
             GeometryReader { geometry in
@@ -213,6 +231,33 @@ struct ScheduleView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: Binding(
+            get: { sleepOverlapItem != nil },
+            set: { if !$0 { sleepOverlapItem = nil } }
+        )) {
+            if let item = sleepOverlapItem {
+                SleepOverlapSheet(
+                    item: item,
+                    earlierTime: sleepEarlierSuggestion,
+                    nextAvailableTime: sleepNextSlotSuggestion,
+                    onMoveEarlier: {
+                        if let newTime = sleepEarlierSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        sleepOverlapItem = nil
+                    },
+                    onMoveToNextSlot: {
+                        if let newTime = sleepNextSlotSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        sleepOverlapItem = nil
+                    },
+                    onKeep: { sleepOverlapItem = nil }
+                )
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
+            }
+        }
         .sheet(item: $selectedItem) { item in
             TaskDetailSheet(
                 item: item,
@@ -240,18 +285,18 @@ struct ScheduleView: View {
         VStack(spacing: 12) {
             // Month and year - centered
             HStack {
-                Text(selectedDate.formatted(.dateTime.month(.wide)))
+                Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.month(.wide)))
                     .font(.title2)
                     .fontWeight(.bold)
-                Text(selectedDate.formatted(.dateTime.year()))
+                Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.year()))
                     .font(.title2)
                     .fontWeight(.bold)
 .foregroundStyle(Color.accentColor)
 
                 Spacer()
 
-                // Today button if not on current day
-                if !selectedDate.isToday {
+                // Today button when today is not in the currently displayed week
+                if !currentWeekDays.contains(where: { $0.isToday }) {
                     Button(action: { selectedDate = Date() }) {
                         Text("Today")
                             .font(.subheadline)
@@ -266,32 +311,28 @@ struct ScheduleView: View {
             }
             .padding(.horizontal)
 
-            // Swipeable week days
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(extendedDays, id: \.self) { date in
-                        weekDayButton(for: date)
-                            .frame(width: 44)
-                    }
+            // Week strip — always shows the 7 days of the current week.
+            // DragGesture detects a horizontal swipe and advances selectedDate by one week.
+            // selectedDate is the sole source of truth; month label and today button derive
+            // directly from currentWeekDays, so they update the moment selectedDate changes.
+            HStack(spacing: 0) {
+                ForEach(currentWeekDays, id: \.self) { date in
+                    weekDayButton(for: date)
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 12)
             }
+            .frame(height: 72)
             .gesture(
-                DragGesture()
+                DragGesture(minimumDistance: 30, coordinateSpace: .local)
                     .onEnded { value in
-                        if value.translation.width < -50 {
-                            // Swipe left - go forward
-                            withAnimation {
-                                if let newDate = Calendar.current.date(byAdding: .day, value: 7, to: selectedDate) {
-                                    selectedDate = newDate
-                                }
-                            }
-                        } else if value.translation.width > 50 {
-                            // Swipe right - go back
-                            withAnimation {
-                                if let newDate = Calendar.current.date(byAdding: .day, value: -7, to: selectedDate) {
-                                    selectedDate = newDate
-                                }
+                        // Ignore mostly-vertical drags (let the timeline scroll handle those)
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                        let cal = Calendar.current
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if value.translation.width < 0 {
+                                selectedDate = cal.date(byAdding: .weekOfYear, value: 1, to: currentWeekSunday) ?? selectedDate
+                            } else {
+                                selectedDate = cal.date(byAdding: .weekOfYear, value: -1, to: currentWeekSunday) ?? selectedDate
                             }
                         }
                     }
@@ -313,12 +354,50 @@ struct ScheduleView: View {
         .background(Color(.systemBackground))
     }
 
-    // Extended days for scrolling (3 weeks: previous, current, next)
-    private var extendedDays: [Date] {
+    // MARK: - Fix My Day Banner
+
+    private var fixMyDayBanner: some View {
+        Button(action: onReshuffle) {
+            HStack(spacing: 12) {
+                Image(systemName: "wand.and.stars")
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Some earlier tasks are unchecked")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    Text("Reschedule or mark them as done")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.accentColor)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Sunday of the week containing selectedDate.
+    private var currentWeekSunday: Date {
         let calendar = Calendar.current
-        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate))!
-        let startDate = calendar.date(byAdding: .day, value: -7, to: startOfWeek)!
-        return (0..<21).compactMap { calendar.date(byAdding: .day, value: $0, to: startDate) }
+        return calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate))!
+    }
+
+    // The 7 days (Sun–Sat) of the current week. Everything — month label, today button,
+    // the strip itself — derives from this so they all stay in sync automatically.
+    private var currentWeekDays: [Date] {
+        let calendar = Calendar.current
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: currentWeekSunday) }
     }
 
 
@@ -409,6 +488,9 @@ struct ScheduleView: View {
                         .allowsHitTesting(false)
                 }
 
+                // Sleep boundary overlay
+                sleepBoundaryOverlay(totalHeight: totalHeight)
+
                 // Gap indicators
                 ForEach(calculateGaps().filter { $0.durationMinutes >= 30 && $0.durationMinutes <= 300 }, id: \.start) { gap in
                     gapIndicatorView(gap: gap)
@@ -483,6 +565,71 @@ struct ScheduleView: View {
         let now = Date()
         let minutesSinceStart = (now.hour - startHour) * 60 + now.minute
         return CGFloat(minutesSinceStart) / 60.0 * hourHeight
+    }
+
+    // MARK: - Sleep Boundary Overlay
+
+    @ViewBuilder
+    private func sleepBoundaryOverlay(totalHeight: CGFloat) -> some View {
+        if sleepManager.isEnabled,
+           let range = sleepManager.getSleepBlockedRange(for: selectedDate) {
+
+            let rawWakeY  = yPositionFromTime(range.wakeTime)
+            let rawBedY   = yPositionFromTime(range.bedtime)
+            let wakeY     = max(0, min(totalHeight, rawWakeY))
+            let bedY      = max(0, min(totalHeight, rawBedY))
+
+            // Morning sleep block: top of timeline → wake time
+            if wakeY > 0 {
+                // Shaded region
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.07))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: wakeY)
+                    .allowsHitTesting(false)
+
+                // Boundary line at wake time
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.3))
+                    .frame(maxWidth: .infinity, maxHeight: 1)
+                    .offset(y: wakeY)
+                    .allowsHitTesting(false)
+
+                // Wake time label
+                Label(sleepManager.sleepSchedule?.wakeTimeString ?? "", systemImage: "sunrise.fill")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.indigo.opacity(0.7))
+                    .offset(x: 10, y: wakeY + 3)
+                    .allowsHitTesting(false)
+            }
+
+            // Evening sleep block: bedtime → end of timeline
+            if bedY < totalHeight {
+                // Shaded region
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.07))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: totalHeight - bedY)
+                    .offset(y: bedY)
+                    .allowsHitTesting(false)
+
+                // Boundary line at bedtime
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.3))
+                    .frame(maxWidth: .infinity, maxHeight: 1)
+                    .offset(y: bedY)
+                    .allowsHitTesting(false)
+
+                // Bedtime label
+                Label(sleepManager.sleepSchedule?.bedtimeString ?? "", systemImage: "moon.fill")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.indigo.opacity(0.7))
+                    .offset(x: 10, y: bedY + 4)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     // MARK: - Gap Indicators
@@ -725,6 +872,9 @@ struct ScheduleView: View {
     private func toggleCompletion(_ item: ScheduleItem) {
         item.isCompleted.toggle()
         item.touch()
+        if item.isCompleted {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 
     private func scrollToRelevantTime(proxy: ScrollViewProxy) {
@@ -767,7 +917,48 @@ struct ScheduleView: View {
                 allItems: Array(allItems)
             )
             conflictData = ConflictResolutionData(resolutions: resolutions)
+            return
         }
+
+        // No task conflict — check for sleep overlap
+        checkForSleepOverlap(newItem: newItem)
+    }
+
+    private func checkForSleepOverlap(newItem: ScheduleItem) {
+        guard sleepManager.isEnabled else { return }
+        guard sleepManager.doesRangeOverlapSleep(start: newItem.startTime, end: newItem.endTime) else { return }
+        guard let range = sleepManager.getSleepBlockedRange(for: newItem.scheduledDate) else { return }
+
+        let earlierStart = range.bufferStart.addingTimeInterval(-Double(newItem.durationMinutes * 60))
+        let calendar = Calendar.current
+        let dayStart = calendar.date(bySettingHour: 5, minute: 0, second: 0, of: newItem.scheduledDate) ?? newItem.scheduledDate
+        sleepEarlierSuggestion = (earlierStart >= dayStart && earlierStart > Date()) ? earlierStart : nil
+        sleepNextSlotSuggestion = findFirstFreeSlotAfterWake(wakeTime: range.wakeTime, durationMinutes: newItem.durationMinutes)
+        sleepOverlapItem = newItem
+    }
+
+    /// Returns the first start time after `wakeTime` where `durationMinutes` fit without overlapping existing items.
+    private func findFirstFreeSlotAfterWake(wakeTime: Date, durationMinutes: Int) -> Date {
+        let wakeDay = Calendar.current.startOfDay(for: wakeTime)
+        let duration = TimeInterval(durationMinutes * 60)
+        let itemsOnWakeDay = allItems
+            .filter { $0.scheduledDate.isSameDay(as: wakeDay) && !$0.isCompleted }
+            .sorted { $0.startTime < $1.startTime }
+        var candidate = wakeTime
+        for item in itemsOnWakeDay {
+            if item.endTime <= candidate { continue }
+            if item.startTime >= candidate.addingTimeInterval(duration) { break }
+            candidate = item.endTime
+        }
+        return candidate
+    }
+
+    private func applySleepSuggestion(to item: ScheduleItem, newStartTime: Date) {
+        guard let liveItem = allItems.first(where: { $0.id == item.id }) else { return }
+        liveItem.startTime = newStartTime
+        liveItem.scheduledDate = Calendar.current.startOfDay(for: newStartTime)
+        liveItem.touch()
+        try? modelContext.save()
     }
 
     private func applyResolution(_ resolution: ConflictResolution, action: ConflictAction) {
@@ -1129,21 +1320,23 @@ struct ConflictResolutionSheet: View {
             // Action buttons based on suggestion
             VStack(spacing: 10) {
                 switch resolution.suggestion {
-                case .moveConflicting(let newTime):
-                    Button(action: {
-                        onResolve(resolution, .moveConflicting(to: newTime))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(newTime))")
+                case .moveConflicting(let options):
+                    ForEach(options, id: \.self) { date in
+                        Button(action: {
+                            onResolve(resolution, .moveConflicting(to: date))
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.right")
+                                Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(date))")
+                            }
+                            .font(.subheadline)
+                            .fontWeight(options.count == 1 ? .medium : .regular)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor)
+                            .cornerRadius(10)
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
                     Button(action: {
@@ -1161,53 +1354,75 @@ struct ConflictResolutionSheet: View {
                         .cornerRadius(10)
                     }
 
-                case .moveNew(let newTime):
-                    Button(action: {
-                        onResolve(resolution, .moveNew(to: newTime))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move new task to \(formatTime(newTime))")
+                case .moveNew(let options):
+                    ForEach(options, id: \.self) { date in
+                        Button(action: {
+                            onResolve(resolution, .moveNew(to: date))
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.right")
+                                Text("Move new task to \(formatTime(date))")
+                            }
+                            .font(.subheadline)
+                            .fontWeight(options.count == 1 ? .medium : .regular)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor)
+                            .cornerRadius(10)
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                      .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                    .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
-                case .userDecision(let moveConflictingTo, let moveNewTo):
-                    Button(action: {
-                        onResolve(resolution, .moveConflicting(to: moveConflictingTo))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.conflictingItem.title)\" to \(formatTime(moveConflictingTo))")
+                case .userDecision(let conflictingOptions, let newOptions):
+                    if !conflictingOptions.isEmpty {
+                        Text("Move \"\(resolution.conflictingItem.title)\"")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(conflictingOptions, id: \.self) { date in
+                            Button(action: {
+                                onResolve(resolution, .moveConflicting(to: date))
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.right")
+                                    Text("\(formatTime(date))")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(conflictingOptions.count == 1 ? .medium : .regular)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor)
+                                .cornerRadius(10)
+                            }
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .cornerRadius(10)
                     }
 
-                    Button(action: {
-                        onResolve(resolution, .moveNew(to: moveNewTo))
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                            Text("Move \"\(resolution.newItem.title)\" to \(formatTime(moveNewTo))")
+                    if !newOptions.isEmpty {
+                        Text("Move \"\(resolution.newItem.title)\"")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, conflictingOptions.isEmpty ? 0 : 4)
+                        ForEach(newOptions, id: \.self) { date in
+                            Button(action: {
+                                onResolve(resolution, .moveNew(to: date))
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.right")
+                                    Text("\(formatTime(date))")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(newOptions.count == 1 ? .medium : .regular)
+                                .foregroundColor(.accentColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor.opacity(0.1))
+                                .cornerRadius(10)
+                            }
                         }
-                        .font(.subheadline)
-                        .foregroundStyle(Color.accentColor)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor.opacity(0.1))
-                        .cornerRadius(10)
                     }
                 }
             }
