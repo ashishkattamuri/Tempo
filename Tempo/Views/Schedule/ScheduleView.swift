@@ -26,6 +26,11 @@ struct ScheduleView: View {
     @State private var savedItem: ScheduleItem?
     @State private var pendingConflictCheck: ScheduleItem?
 
+    // Sleep overlap state (for tasks created via timeline tap)
+    @State private var sleepOverlapItem: ScheduleItem?
+    @State private var sleepEarlierSuggestion: Date?
+    @State private var sleepNextSlotSuggestion: Date?
+
     private let startHour = 5   // 5 AM
     private let endHour = 24    // Midnight
     private let hourHeight: CGFloat = 80
@@ -225,6 +230,33 @@ struct ScheduleView: View {
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: Binding(
+            get: { sleepOverlapItem != nil },
+            set: { if !$0 { sleepOverlapItem = nil } }
+        )) {
+            if let item = sleepOverlapItem {
+                SleepOverlapSheet(
+                    item: item,
+                    earlierTime: sleepEarlierSuggestion,
+                    nextAvailableTime: sleepNextSlotSuggestion,
+                    onMoveEarlier: {
+                        if let newTime = sleepEarlierSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        sleepOverlapItem = nil
+                    },
+                    onMoveToNextSlot: {
+                        if let newTime = sleepNextSlotSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        sleepOverlapItem = nil
+                    },
+                    onKeep: { sleepOverlapItem = nil }
+                )
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
+            }
         }
         .sheet(item: $selectedItem) { item in
             TaskDetailSheet(
@@ -882,7 +914,48 @@ struct ScheduleView: View {
                 allItems: Array(allItems)
             )
             conflictData = ConflictResolutionData(resolutions: resolutions)
+            return
         }
+
+        // No task conflict — check for sleep overlap
+        checkForSleepOverlap(newItem: newItem)
+    }
+
+    private func checkForSleepOverlap(newItem: ScheduleItem) {
+        guard sleepManager.isEnabled else { return }
+        guard sleepManager.doesRangeOverlapSleep(start: newItem.startTime, end: newItem.endTime) else { return }
+        guard let range = sleepManager.getSleepBlockedRange(for: newItem.scheduledDate) else { return }
+
+        let earlierStart = range.bufferStart.addingTimeInterval(-Double(newItem.durationMinutes * 60))
+        let calendar = Calendar.current
+        let dayStart = calendar.date(bySettingHour: 5, minute: 0, second: 0, of: newItem.scheduledDate) ?? newItem.scheduledDate
+        sleepEarlierSuggestion = (earlierStart >= dayStart && earlierStart > Date()) ? earlierStart : nil
+        sleepNextSlotSuggestion = findFirstFreeSlotAfterWake(wakeTime: range.wakeTime, durationMinutes: newItem.durationMinutes)
+        sleepOverlapItem = newItem
+    }
+
+    /// Returns the first start time after `wakeTime` where `durationMinutes` fit without overlapping existing items.
+    private func findFirstFreeSlotAfterWake(wakeTime: Date, durationMinutes: Int) -> Date {
+        let wakeDay = Calendar.current.startOfDay(for: wakeTime)
+        let duration = TimeInterval(durationMinutes * 60)
+        let itemsOnWakeDay = allItems
+            .filter { $0.scheduledDate.isSameDay(as: wakeDay) && !$0.isCompleted }
+            .sorted { $0.startTime < $1.startTime }
+        var candidate = wakeTime
+        for item in itemsOnWakeDay {
+            if item.endTime <= candidate { continue }
+            if item.startTime >= candidate.addingTimeInterval(duration) { break }
+            candidate = item.endTime
+        }
+        return candidate
+    }
+
+    private func applySleepSuggestion(to item: ScheduleItem, newStartTime: Date) {
+        guard let liveItem = allItems.first(where: { $0.id == item.id }) else { return }
+        liveItem.startTime = newStartTime
+        liveItem.scheduledDate = Calendar.current.startOfDay(for: newStartTime)
+        liveItem.touch()
+        try? modelContext.save()
     }
 
     private func applyResolution(_ resolution: ConflictResolution, action: ConflictAction) {
