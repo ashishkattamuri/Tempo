@@ -8,7 +8,6 @@ struct RecurrencePicker: View {
 
     /// Computed frequency based on selected days
     var frequency: RecurrenceFrequency {
-        // All 7 days selected = daily, otherwise weekly
         selectedDays.count == 7 ? .daily : .weekly
     }
 
@@ -25,11 +24,10 @@ struct RecurrencePicker: View {
             Toggle("Repeat on specific days", isOn: $isRecurring)
 
             if isRecurring {
-                // Day selector
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Select days")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     HStack(spacing: 8) {
                         ForEach(0..<7, id: \.self) { day in
@@ -37,7 +35,6 @@ struct RecurrencePicker: View {
                         }
                     }
 
-                    // Quick selection buttons
                     HStack(spacing: 12) {
                         quickSelectButton("Weekdays", days: [1, 2, 3, 4, 5])
                         quickSelectButton("Weekends", days: [0, 6])
@@ -48,14 +45,12 @@ struct RecurrencePicker: View {
 
                 Divider()
 
-                // End date (optional)
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Set end date", isOn: $showEndDate)
                         .onChange(of: showEndDate) { _, newValue in
                             if !newValue {
                                 endDate = nil
                             } else if endDate == nil {
-                                // Default to 4 weeks from now
                                 endDate = Calendar.current.date(byAdding: .weekOfYear, value: 4, to: Date())
                             }
                         }
@@ -74,11 +69,10 @@ struct RecurrencePicker: View {
                     }
                 }
 
-                // Summary
                 if !selectedDays.isEmpty {
                     Text(recurrenceSummary)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
             }
@@ -105,7 +99,7 @@ struct RecurrencePicker: View {
         }) {
             Text(dayLabels[day])
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(isSelected ? .white : .primary)
+                .foregroundStyle(isSelected ? .white : .primary)
                 .frame(width: 36, height: 36)
                 .background(
                     Circle()
@@ -127,7 +121,7 @@ struct RecurrencePicker: View {
         }) {
             Text(label)
                 .font(.caption)
-                .foregroundColor(isSelected ? .white : .secondary)
+                .foregroundStyle(isSelected ? .white : .secondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
@@ -142,7 +136,6 @@ struct RecurrencePicker: View {
 
     private var recurrenceSummary: String {
         let sortedDays = selectedDays.sorted()
-
         var summary: String
 
         if frequency == .daily {
@@ -157,7 +150,6 @@ struct RecurrencePicker: View {
                 summary = "Daily on \(dayList)"
             }
         } else {
-            // Weekly - times per week is the number of selected days
             let times = sortedDays.count
             if sortedDays == [1, 2, 3, 4, 5] {
                 summary = "\(times)x per week on weekdays"

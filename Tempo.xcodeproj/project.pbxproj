@@ -204,6 +204,7 @@
 				100000000000000000000006 /* ReshuffleResult.swift */,
 				100000000000000000000041 /* CompensationRecord.swift */,
 				100000000000000000000046 /* RecurrenceFrequency.swift */,
+				7930B90A2F48EC6C0083955E /* AppAppearance.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -506,6 +507,7 @@
 				000000000000000000000013 /* CategoryProcessor.swift in Sources */,
 				000000000000000000000014 /* NonNegotiableProcessor.swift in Sources */,
 				000000000000000000000015 /* IdentityHabitProcessor.swift in Sources */,
+				7930B90B2F48EC6C0083955E /* AppAppearance.swift in Sources */,
 				000000000000000000000016 /* FlexibleTaskProcessor.swift in Sources */,
 				000000000000000000000017 /* OptionalGoalProcessor.swift in Sources */,
 				000000000000000000000018 /* OverflowDetector.swift in Sources */,
