@@ -182,12 +182,12 @@ struct ScheduleView: View {
                     selectedSlotTime = nil
                     onAddTask()
                 }) {
-                    Image(systemName: "plus")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                        .frame(width: 32, height: 32)
-                        .background(Color.accentColor)
-                        .clipShape(Circle())
+                   Image(systemName: "plus")
+    .font(.title3)
+    .foregroundStyle(.white)
+    .frame(width: 32, height: 32)
+    .background(Color.accentColor)
+    .clipShape(Circle())
                 }
             }
         }
@@ -291,7 +291,7 @@ struct ScheduleView: View {
                 Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.year()))
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.accentColor)
+.foregroundStyle(Color.accentColor)
 
                 Spacer()
 
@@ -301,7 +301,7 @@ struct ScheduleView: View {
                         Text("Today")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.accentColor)
+                            .foregroundStyle(Color.accentColor)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(Color.accentColor.opacity(0.1))
@@ -345,7 +345,7 @@ struct ScheduleView: View {
                         .tint(.green)
                     Text("\(completedCount)/\(itemsForSelectedDate.count)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal)
             }
@@ -410,12 +410,12 @@ struct ScheduleView: View {
             VStack(spacing: 4) {
                 Text(date.formatted(.dateTime.weekday(.narrow)))
                     .font(.caption2)
-                    .foregroundColor(isSelected ? .white : .secondary)
+                    .foregroundStyle(isSelected ? .white : .secondary)
 
                 Text(date.formatted(.dateTime.day()))
                     .font(.callout)
                     .fontWeight(isToday ? .bold : .medium)
-                    .foregroundColor(isSelected ? .white : (isToday ? .accentColor : .primary))
+                   .foregroundStyle(isSelected ? .white : (isToday ? .accentColor : .primary))
 
                 // Activity indicator
                 HStack(spacing: 2) {
@@ -476,7 +476,7 @@ struct ScheduleView: View {
                     path.addLine(to: CGPoint(x: 1, y: totalHeight))
                 }
                 .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                .foregroundColor(Color(.systemGray4))
+                .foregroundStyle(Color(.systemGray4))
                 .allowsHitTesting(false)
 
                 // Hour grid lines (subtle)
@@ -533,7 +533,7 @@ struct ScheduleView: View {
             Text(formatHour(hour))
                 .font(.caption)
                 .fontWeight(isCurrentHour ? .bold : .regular)
-                .foregroundColor(isCurrentHour ? .accentColor : .secondary)
+                .foregroundStyle(isCurrentHour ? Color.accentColor : Color.secondary)
                 .frame(width: 40, alignment: .trailing)
 
             // Dot on timeline
@@ -649,11 +649,11 @@ struct ScheduleView: View {
             HStack(spacing: 6) {
                 Image(systemName: "plus.circle.fill")
                     .font(.subheadline)
-                    .foregroundColor(.accentColor.opacity(0.6))
+                    .foregroundStyle(Color.accentColor.opacity(0.6))
 
                 Text(friendlyMessage)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 Spacer()
             }
@@ -662,7 +662,7 @@ struct ScheduleView: View {
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .foregroundColor(Color(.systemGray4))
+                    .foregroundStyle(Color(.systemGray4))
             )
         }
         .buttonStyle(.plain)
@@ -733,7 +733,7 @@ struct ScheduleView: View {
 
                         Image(systemName: item.category.iconName)
                             .font(.system(size: 16))
-                            .foregroundColor(item.category.color)
+                            .foregroundStyle(item.category.color)
                     }
                 }
 
@@ -743,12 +743,12 @@ struct ScheduleView: View {
                     HStack(spacing: 6) {
                         Image(systemName: item.category.iconName)
                             .font(.system(size: 12))
-                            .foregroundColor(item.category.color)
+                            .foregroundStyle(item.category.color)
 
                         Text(item.title)
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(item.isCompleted ? .secondary : .primary)
+                            .foregroundStyle(item.isCompleted ? .secondary : .primary)
                             .strikethrough(item.isCompleted)
                             .lineLimit(1)
 
@@ -756,7 +756,7 @@ struct ScheduleView: View {
 
                         Text(formatTimeRange(item))
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
 
                         // Checkbox - smaller for compact view
                         Button(action: { toggleCompletion(item) }) {
@@ -767,7 +767,7 @@ struct ScheduleView: View {
                                     item.isCompleted ?
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 9, weight: .bold))
-                                        .foregroundColor(.green)
+                                        .foregroundStyle(.green)
                                     : nil
                                 )
                         }
@@ -780,24 +780,24 @@ struct ScheduleView: View {
                             Text("\(remaining) min remaining")
                                 .font(.caption)
                                 .fontWeight(.medium)
-                                .foregroundColor(.accentColor)
+                                .foregroundStyle(Color.accentColor)
                         } else {
                             Text(formatTimeRange(item))
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         Text(item.title)
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundColor(item.isCompleted ? .secondary : .primary)
+                            .foregroundStyle(item.isCompleted ? .secondary : .primary)
                             .strikethrough(item.isCompleted)
                             .lineLimit(3)
 
                         if item.durationMinutes >= 60 {
                             Text("\(item.durationMinutes) min")
                                 .font(.caption2)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
 
@@ -812,7 +812,7 @@ struct ScheduleView: View {
                                 item.isCompleted ?
                                 Image(systemName: "checkmark")
                                     .font(.caption2.bold())
-                                    .foregroundColor(.green)
+                                    .foregroundStyle(.green)
                                 : nil
                             )
                     }
@@ -1105,13 +1105,13 @@ struct TaskDetailSheet: View {
 
                     Image(systemName: item.category.iconName)
                         .font(.system(size: 18))
-                        .foregroundColor(item.category.color)
+                        .foregroundStyle(item.category.color)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(timeFormatter.string(from: item.startTime)) (\(item.durationMinutes) min)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     Text(item.title)
                         .font(.headline)
@@ -1157,7 +1157,7 @@ struct TaskDetailSheet: View {
                 }
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(.accentColor)
+                .foregroundStyle(Color.accentColor)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(Color(.systemGray6))
@@ -1174,11 +1174,11 @@ struct TaskDetailSheet: View {
             VStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundColor(color)
+                    .foregroundStyle(color)
 
                 Text(label)
                     .font(.caption)
-                    .foregroundColor(color)
+                    .foregroundStyle(color)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
@@ -1225,7 +1225,7 @@ struct ConflictResolutionSheet: View {
                     VStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.largeTitle)
-                            .foregroundColor(.orange)
+                            .foregroundStyle(.orange)
 
                         Text("Schedule Conflict")
                             .font(.title2)
@@ -1233,7 +1233,7 @@ struct ConflictResolutionSheet: View {
 
                         Text("The new task overlaps with existing tasks. How would you like to resolve this?")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding()
@@ -1271,7 +1271,7 @@ struct ConflictResolutionSheet: View {
                             .fill(resolution.newItem.category.color.opacity(0.2))
                             .frame(width: 40, height: 40)
                         Image(systemName: resolution.newItem.category.iconName)
-                            .foregroundColor(resolution.newItem.category.color)
+                            .foregroundStyle(resolution.newItem.category.color)
                     }
                     Text(resolution.newItem.title)
                         .font(.caption)
@@ -1280,12 +1280,12 @@ struct ConflictResolutionSheet: View {
                         .multilineTextAlignment(.center)
                     Text(timeFormatter.string(from: resolution.newItem.startTime))
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
 
                 Image(systemName: "arrow.left.arrow.right")
-                    .foregroundColor(.orange)
+                    .foregroundStyle(.orange)
 
                 // Conflicting task
                 VStack(spacing: 4) {
@@ -1294,7 +1294,7 @@ struct ConflictResolutionSheet: View {
                             .fill(resolution.conflictingItem.category.color.opacity(0.2))
                             .frame(width: 40, height: 40)
                         Image(systemName: resolution.conflictingItem.category.iconName)
-                            .foregroundColor(resolution.conflictingItem.category.color)
+                            .foregroundStyle(resolution.conflictingItem.category.color)
                     }
                     Text(resolution.conflictingItem.title)
                         .font(.caption)
@@ -1303,7 +1303,7 @@ struct ConflictResolutionSheet: View {
                         .multilineTextAlignment(.center)
                     Text(timeFormatter.string(from: resolution.conflictingItem.startTime))
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -1311,7 +1311,7 @@ struct ConflictResolutionSheet: View {
             // Reason
             Text(resolution.reason)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .background(Color(.systemGray6))
@@ -1347,7 +1347,7 @@ struct ConflictResolutionSheet: View {
                             Text("Remove \"\(resolution.conflictingItem.title)\"")
                         }
                         .font(.subheadline)
-                        .foregroundColor(.red)
+                        .foregroundStyle(.red)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(Color.red.opacity(0.1))
@@ -1430,7 +1430,7 @@ struct ConflictResolutionSheet: View {
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+       .shadow(color: Color.primary.opacity(0.08), radius: 8, x: 0, y: 2)
     }
 }
 

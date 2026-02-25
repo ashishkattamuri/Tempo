@@ -54,7 +54,7 @@ struct ReshuffleProposalView: View {
                 .scaleEffect(1.4)
             Text("Looking at your schedule...")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -70,11 +70,10 @@ struct ReshuffleProposalView: View {
                     .font(.title3)
                     .fontWeight(.semibold)
 
-                Text("No adjustments needed for today.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+            Text("No changes needed for today's schedule.")
+                .font(.subheadline)
+            .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
 
             Button("Done", action: onCancel)
                 .buttonStyle(.borderedProminent)
@@ -197,6 +196,8 @@ struct ReshuffleProposalView: View {
                     }
                     .padding(.horizontal, 16)
                 }
+                .font(.caption)
+                .foregroundStyle(.purple)
             }
             .padding(.vertical, 8)
         } header: {
@@ -305,6 +306,12 @@ struct ReshuffleProposalView: View {
                             .font(.caption)
                             .foregroundColor(.accentColor)
                     }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.accentColor)
+                   .foregroundStyle(.white)
+                    .cornerRadius(Constants.cornerRadius)
                 }
             }
             .padding(.horizontal, 16)
