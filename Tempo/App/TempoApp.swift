@@ -9,7 +9,7 @@ struct TempoApp: App {
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    // MARK: - Appearance (NEW)
+    // MARK: - Appearance
 
     @AppStorage("appAppearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
 
@@ -43,14 +43,24 @@ struct TempoApp: App {
     /// Shared compensation tracker for makeup sessions
     @StateObject private var compensationTracker = CompensationTracker()
 
+    /// Timer that fires every 30 seconds to check for task transitions and update Live Activity
+    private let liveActivityTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(sleepManager)
                 .environmentObject(compensationTracker)
-                .preferredColorScheme(selectedAppearance.colorScheme) // ✅ Applied here
+                .preferredColorScheme(selectedAppearance.colorScheme)
                 .onAppear {
                     setupNotifications()
+                }
+                // Every 30s, notify ScheduleViewModel to re-check the active task
+                .onReceive(liveActivityTimer) { _ in
+                    NotificationCenter.default.post(
+                        name: Notification.Name("CheckLiveActivity"),
+                        object: nil
+                    )
                 }
         }
         .modelContainer(sharedModelContainer)

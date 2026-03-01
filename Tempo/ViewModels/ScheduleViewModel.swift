@@ -86,6 +86,15 @@ final class ScheduleViewModel {
 
     init(repository: ScheduleRepository) {
         self.repository = repository
+
+        // Observe the timer-based Live Activity check posted from TempoApp
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("CheckLiveActivity"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshLiveActivity()
+        }
     }
 
     // MARK: - Data Operations
@@ -101,6 +110,9 @@ final class ScheduleViewModel {
         }
 
         isLoading = false
+
+        // Check if a task is currently active and start/update Live Activity
+        refreshLiveActivity()
     }
 
     func loadItems(for date: Date) async {
@@ -178,5 +190,12 @@ final class ScheduleViewModel {
             completedMinutes: completedMinutes,
             hasIssues: hasScheduleIssues
         )
+    }
+
+    // MARK: - Live Activity
+
+    /// Called after any data change to sync the Live Activity with the current active task.
+    func refreshLiveActivity() {
+        LiveActivityService.shared.checkAndUpdateLiveActivity(for: items)
     }
 }
