@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -49,10 +49,15 @@
 		000000000000000000000044 /* SettingsMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000044 /* SettingsMenuView.swift */; };
 		000000000000000000000045 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000045 /* NotificationService.swift */; };
 		000000000000000000000046 /* RecurrenceFrequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000046 /* RecurrenceFrequency.swift */; };
+		000000000000000000000047 /* SleepOverlapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000047 /* SleepOverlapSheet.swift */; };
 		01BB4002DE04FFFA26353818 /* CriticalScenarioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D9B54E1041EF2BFB78E78C /* CriticalScenarioTests.swift */; };
 		72BA05E070F074D7E3D277A8 /* ProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE35872014EFE6647A0DC12B /* ProcessorTests.swift */; };
+		7930B90B2F48EC6C0083955E /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7930B90A2F48EC6C0083955E /* AppAppearance.swift */; };
 		79B448AD2F48D9770092638B /* CalendarImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B448AC2F48D9770092638B /* CalendarImportView.swift */; };
 		79B448B02F48DA520092638B /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B448AE2F48DA1B0092638B /* CalendarService.swift */; };
+		79F383782F5457CE003A436B /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 79F383772F5457CE003A436B /* WidgetKit.framework */; };
+		79F3837A2F5457CE003A436B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 79F383792F5457CE003A436B /* SwiftUI.framework */; };
+		79F383892F5457D1003A436B /* TempoLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 79F383762F5457CE003A436B /* TempoLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E131D87D2F497E3F007DB74A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */; };
 		E9FD94BF54710F2A8F5F6C22 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B5E52B6C7052E17C8DB4289 /* Foundation.framework */; };
 		EF61B8A9B20B29A83DCA5CB1 /* ReshuffleEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */; };
@@ -60,6 +65,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		79F383872F5457D1003A436B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 600000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 79F383752F5457CE003A436B;
+			remoteInfo = TempoLiveActivityExtension;
+		};
 		B8897AE856DC7E393E1CEB7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 600000000000000000000001 /* Project object */;
@@ -68,6 +80,20 @@
 			remoteInfo = Tempo;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		79F3838A2F5457D1003A436B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				79F383892F5457D1003A436B /* TempoLiveActivityExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		100000000000000000000000 /* Tempo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tempo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -114,11 +140,16 @@
 		100000000000000000000044 /* SettingsMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsMenuView.swift; sourceTree = "<group>"; };
 		100000000000000000000045 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		100000000000000000000046 /* RecurrenceFrequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurrenceFrequency.swift; sourceTree = "<group>"; };
+		100000000000000000000047 /* SleepOverlapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepOverlapSheet.swift; sourceTree = "<group>"; };
 		25D9B54E1041EF2BFB78E78C /* CriticalScenarioTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CriticalScenarioTests.swift; sourceTree = "<group>"; };
 		4B5E52B6C7052E17C8DB4289 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		6E548CA394FD65D86A6152E7 /* SummaryGeneratorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SummaryGeneratorTests.swift; sourceTree = "<group>"; };
+		7930B90A2F48EC6C0083955E /* AppAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearance.swift; sourceTree = "<group>"; };
 		79B448AC2F48D9770092638B /* CalendarImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarImportView.swift; sourceTree = "<group>"; };
 		79B448AE2F48DA1B0092638B /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		79F383762F5457CE003A436B /* TempoLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TempoLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		79F383772F5457CE003A436B /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		79F383792F5457CE003A436B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		DE35872014EFE6647A0DC12B /* ProcessorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProcessorTests.swift; sourceTree = "<group>"; };
 		E131D87B2F497D4A007DB74A /* Tempo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tempo.entitlements; sourceTree = "<group>"; };
 		E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -126,12 +157,35 @@
 		EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReshuffleEngineTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		79F3838D2F5457D1003A436B /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 79F383752F5457CE003A436B /* TempoLiveActivityExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		79F3837B2F5457CE003A436B /* TempoLiveActivity */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (79F3838D2F5457D1003A436B /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = TempoLiveActivity; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		200000000000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000038 /* HealthKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		79F383732F5457CE003A436B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				79F3837A2F5457CE003A436B /* SwiftUI.framework in Frameworks */,
+				79F383782F5457CE003A436B /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -151,6 +205,7 @@
 			children = (
 				E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */,
 				300000000000000000000002 /* Tempo */,
+				79F3837B2F5457CE003A436B /* TempoLiveActivity */,
 				300000000000000000000003 /* Products */,
 				E180D2A42F338FE0006FC0B0 /* Recovered References */,
 				6123CFBB90DC8B4097C93CEF /* Frameworks */,
@@ -182,6 +237,7 @@
 			children = (
 				100000000000000000000000 /* Tempo.app */,
 				E572C1387B7F71918E542DF9 /* TempoTests.xctest */,
+				79F383762F5457CE003A436B /* TempoLiveActivityExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -356,7 +412,6 @@
 				EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */,
 				DE35872014EFE6647A0DC12B /* ProcessorTests.swift */,
 			);
-			name = TempoTests;
 			path = TempoTests;
 			sourceTree = "<group>";
 		};
@@ -364,6 +419,8 @@
 			isa = PBXGroup;
 			children = (
 				D289E785A8CBE47A97D27631 /* iOS */,
+				79F383772F5457CE003A436B /* WidgetKit.framework */,
+				79F383792F5457CE003A436B /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -394,10 +451,12 @@
 				400000000000000000000002 /* Sources */,
 				200000000000000000000001 /* Frameworks */,
 				400000000000000000000003 /* Resources */,
+				79F3838A2F5457D1003A436B /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				79F383882F5457D1003A436B /* PBXTargetDependency */,
 			);
 			name = Tempo;
 			productName = Tempo;
@@ -422,6 +481,28 @@
 			productReference = E572C1387B7F71918E542DF9 /* TempoTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		79F383752F5457CE003A436B /* TempoLiveActivityExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 79F3838E2F5457D1003A436B /* Build configuration list for PBXNativeTarget "TempoLiveActivityExtension" */;
+			buildPhases = (
+				79F383722F5457CE003A436B /* Sources */,
+				79F383732F5457CE003A436B /* Frameworks */,
+				79F383742F5457CE003A436B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				79F3837B2F5457CE003A436B /* TempoLiveActivity */,
+			);
+			name = TempoLiveActivityExtension;
+			packageProductDependencies = (
+			);
+			productName = TempoLiveActivityExtension;
+			productReference = 79F383762F5457CE003A436B /* TempoLiveActivityExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -429,11 +510,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					400000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					79F383752F5457CE003A436B = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -452,6 +536,7 @@
 			targets = (
 				400000000000000000000001 /* Tempo */,
 				404286255FBC0CE0037EB039 /* TempoTests */,
+				79F383752F5457CE003A436B /* TempoLiveActivityExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -464,6 +549,13 @@
 				E131D87D2F497E3F007DB74A /* PrivacyInfo.xcprivacy in Resources */,
 				000000000000000000000034 /* Assets.xcassets in Resources */,
 				000000000000000000000035 /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		79F383742F5457CE003A436B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -537,6 +629,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		79F383722F5457CE003A436B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -545,6 +644,11 @@
 			name = Tempo;
 			target = 400000000000000000000001 /* Tempo */;
 			targetProxy = B8897AE856DC7E393E1CEB7B /* PBXContainerItemProxy */;
+		};
+		79F383882F5457D1003A436B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 79F383752F5457CE003A436B /* TempoLiveActivityExtension */;
+			targetProxy = 79F383872F5457D1003A436B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -747,6 +851,68 @@
 			};
 			name = Release;
 		};
+		79F3838B2F5457D1003A436B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KTK23627V8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TempoLiveActivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TempoLiveActivity;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.TempoLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		79F3838C2F5457D1003A436B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KTK23627V8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TempoLiveActivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TempoLiveActivity;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.TempoLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		8DBB685D159F9ECBFF4EBBCC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -789,6 +955,15 @@
 			buildConfigurations = (
 				8DBB685D159F9ECBFF4EBBCC /* Release */,
 				198038763720CBC74CBF5572 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		79F3838E2F5457D1003A436B /* Build configuration list for PBXNativeTarget "TempoLiveActivityExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				79F3838B2F5457D1003A436B /* Debug */,
+				79F3838C2F5457D1003A436B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

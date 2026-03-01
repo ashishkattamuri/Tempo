@@ -13,9 +13,9 @@ struct SettingsMenuView: View {
 
     var body: some View {
         List {
-            
+
             // MARK: - Time Blocking
-            
+
             Section {
                 NavigationLink {
                     SleepSettingsView(sleepManager: sleepManager)
