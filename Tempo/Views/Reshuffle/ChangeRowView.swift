@@ -23,6 +23,7 @@ struct ChangeRowView: View {
             // Change type icon
             Image(systemName: change.iconName)
                 .font(.title2)
+                .foregroundStyle(iconColor)
                 .foregroundColor(isSkipped ? .secondary : iconColor)
                 .frame(width: 40)
 
@@ -30,6 +31,7 @@ struct ChangeRowView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(change.item.title)
                     .font(.subheadline)
+                   .foregroundStyle(.secondary)
                     .fontWeight(.semibold)
                     .strikethrough(isSkipped)
                     .foregroundColor(isSkipped ? .secondary : .primary)
@@ -205,6 +207,7 @@ struct UserDecisionView: View {
 
                     Text(option.description)
                         .font(.caption)
+                       .foregroundStyle(.secondary)
                         .foregroundColor(isSelected ? .accentColor.opacity(0.8) : .secondary)
                 }
 
