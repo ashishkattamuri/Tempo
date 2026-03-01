@@ -10,6 +10,7 @@ struct ConflictResolutionData: Identifiable {
 /// Main daily schedule view - Structured-inspired timeline design.
 struct ScheduleView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sleepManager: SleepManager
     @Binding var selectedDate: Date
     let onAddTask: () -> Void
     let onEditTask: (ScheduleItem) -> Void
@@ -24,6 +25,11 @@ struct ScheduleView: View {
     @State private var conflictData: ConflictResolutionData?
     @State private var savedItem: ScheduleItem?
     @State private var pendingConflictCheck: ScheduleItem?
+
+    // Sleep overlap state (for tasks created via timeline tap)
+    @State private var sleepOverlapItem: ScheduleItem?
+    @State private var sleepEarlierSuggestion: Date?
+    @State private var sleepNextSlotSuggestion: Date?
 
     private let startHour = 5   // 5 AM
     private let endHour = 24    // Midnight
@@ -224,6 +230,33 @@ struct ScheduleView: View {
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: Binding(
+            get: { sleepOverlapItem != nil },
+            set: { if !$0 { sleepOverlapItem = nil } }
+        )) {
+            if let item = sleepOverlapItem {
+                SleepOverlapSheet(
+                    item: item,
+                    earlierTime: sleepEarlierSuggestion,
+                    nextAvailableTime: sleepNextSlotSuggestion,
+                    onMoveEarlier: {
+                        if let newTime = sleepEarlierSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        sleepOverlapItem = nil
+                    },
+                    onMoveToNextSlot: {
+                        if let newTime = sleepNextSlotSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        sleepOverlapItem = nil
+                    },
+                    onKeep: { sleepOverlapItem = nil }
+                )
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
+            }
         }
         .sheet(item: $selectedItem) { item in
             TaskDetailSheet(
@@ -455,6 +488,9 @@ struct ScheduleView: View {
                         .allowsHitTesting(false)
                 }
 
+                // Sleep boundary overlay
+                sleepBoundaryOverlay(totalHeight: totalHeight)
+
                 // Gap indicators
                 ForEach(calculateGaps().filter { $0.durationMinutes >= 30 && $0.durationMinutes <= 300 }, id: \.start) { gap in
                     gapIndicatorView(gap: gap)
@@ -529,6 +565,71 @@ struct ScheduleView: View {
         let now = Date()
         let minutesSinceStart = (now.hour - startHour) * 60 + now.minute
         return CGFloat(minutesSinceStart) / 60.0 * hourHeight
+    }
+
+    // MARK: - Sleep Boundary Overlay
+
+    @ViewBuilder
+    private func sleepBoundaryOverlay(totalHeight: CGFloat) -> some View {
+        if sleepManager.isEnabled,
+           let range = sleepManager.getSleepBlockedRange(for: selectedDate) {
+
+            let rawWakeY  = yPositionFromTime(range.wakeTime)
+            let rawBedY   = yPositionFromTime(range.bedtime)
+            let wakeY     = max(0, min(totalHeight, rawWakeY))
+            let bedY      = max(0, min(totalHeight, rawBedY))
+
+            // Morning sleep block: top of timeline → wake time
+            if wakeY > 0 {
+                // Shaded region
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.07))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: wakeY)
+                    .allowsHitTesting(false)
+
+                // Boundary line at wake time
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.3))
+                    .frame(maxWidth: .infinity, maxHeight: 1)
+                    .offset(y: wakeY)
+                    .allowsHitTesting(false)
+
+                // Wake time label
+                Label(sleepManager.sleepSchedule?.wakeTimeString ?? "", systemImage: "sunrise.fill")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.indigo.opacity(0.7))
+                    .offset(x: 10, y: wakeY + 3)
+                    .allowsHitTesting(false)
+            }
+
+            // Evening sleep block: bedtime → end of timeline
+            if bedY < totalHeight {
+                // Shaded region
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.07))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: totalHeight - bedY)
+                    .offset(y: bedY)
+                    .allowsHitTesting(false)
+
+                // Boundary line at bedtime
+                Rectangle()
+                    .fill(Color.indigo.opacity(0.3))
+                    .frame(maxWidth: .infinity, maxHeight: 1)
+                    .offset(y: bedY)
+                    .allowsHitTesting(false)
+
+                // Bedtime label
+                Label(sleepManager.sleepSchedule?.bedtimeString ?? "", systemImage: "moon.fill")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.indigo.opacity(0.7))
+                    .offset(x: 10, y: bedY + 4)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     // MARK: - Gap Indicators
@@ -771,6 +872,9 @@ struct ScheduleView: View {
     private func toggleCompletion(_ item: ScheduleItem) {
         item.isCompleted.toggle()
         item.touch()
+        if item.isCompleted {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 
     private func scrollToRelevantTime(proxy: ScrollViewProxy) {
@@ -813,7 +917,48 @@ struct ScheduleView: View {
                 allItems: Array(allItems)
             )
             conflictData = ConflictResolutionData(resolutions: resolutions)
+            return
         }
+
+        // No task conflict — check for sleep overlap
+        checkForSleepOverlap(newItem: newItem)
+    }
+
+    private func checkForSleepOverlap(newItem: ScheduleItem) {
+        guard sleepManager.isEnabled else { return }
+        guard sleepManager.doesRangeOverlapSleep(start: newItem.startTime, end: newItem.endTime) else { return }
+        guard let range = sleepManager.getSleepBlockedRange(for: newItem.scheduledDate) else { return }
+
+        let earlierStart = range.bufferStart.addingTimeInterval(-Double(newItem.durationMinutes * 60))
+        let calendar = Calendar.current
+        let dayStart = calendar.date(bySettingHour: 5, minute: 0, second: 0, of: newItem.scheduledDate) ?? newItem.scheduledDate
+        sleepEarlierSuggestion = (earlierStart >= dayStart && earlierStart > Date()) ? earlierStart : nil
+        sleepNextSlotSuggestion = findFirstFreeSlotAfterWake(wakeTime: range.wakeTime, durationMinutes: newItem.durationMinutes)
+        sleepOverlapItem = newItem
+    }
+
+    /// Returns the first start time after `wakeTime` where `durationMinutes` fit without overlapping existing items.
+    private func findFirstFreeSlotAfterWake(wakeTime: Date, durationMinutes: Int) -> Date {
+        let wakeDay = Calendar.current.startOfDay(for: wakeTime)
+        let duration = TimeInterval(durationMinutes * 60)
+        let itemsOnWakeDay = allItems
+            .filter { $0.scheduledDate.isSameDay(as: wakeDay) && !$0.isCompleted }
+            .sorted { $0.startTime < $1.startTime }
+        var candidate = wakeTime
+        for item in itemsOnWakeDay {
+            if item.endTime <= candidate { continue }
+            if item.startTime >= candidate.addingTimeInterval(duration) { break }
+            candidate = item.endTime
+        }
+        return candidate
+    }
+
+    private func applySleepSuggestion(to item: ScheduleItem, newStartTime: Date) {
+        guard let liveItem = allItems.first(where: { $0.id == item.id }) else { return }
+        liveItem.startTime = newStartTime
+        liveItem.scheduledDate = Calendar.current.startOfDay(for: newStartTime)
+        liveItem.touch()
+        try? modelContext.save()
     }
 
     private func applyResolution(_ resolution: ConflictResolution, action: ConflictAction) {
