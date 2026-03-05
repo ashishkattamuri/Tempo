@@ -163,6 +163,60 @@ final class NotificationService {
         )
     }
 
+    // MARK: - Focus Block Notifications
+
+    /// Notify user when a focus block session starts
+    func scheduleFocusStart(for task: ScheduleItem) {
+        guard task.startTime > Date() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Focus block started"
+        content.body = "\"\(task.title)\" — distracting apps are now blocked"
+        content.sound = .default
+        content.categoryIdentifier = "FOCUS_BLOCK"
+        content.userInfo = ["taskId": task.id.uuidString, "taskTitle": task.title]
+
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: task.startTime)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+
+        let request = UNNotificationRequest(
+            identifier: "focus-start-\(task.id.uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Notify user when a focus block session ends
+    func scheduleFocusEnd(for task: ScheduleItem) {
+        guard task.endTime > Date() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Focus block ended"
+        content.body = "\"\(task.title)\" is complete — apps are unblocked"
+        content.sound = .default
+        content.categoryIdentifier = "FOCUS_BLOCK"
+        content.userInfo = ["taskId": task.id.uuidString, "taskTitle": task.title]
+
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: task.endTime)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+
+        let request = UNNotificationRequest(
+            identifier: "focus-end-\(task.id.uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Cancel focus block notifications for a task
+    func cancelFocusNotifications(for task: ScheduleItem) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [
+            "focus-start-\(task.id.uuidString)",
+            "focus-end-\(task.id.uuidString)"
+        ])
+    }
+
     // MARK: - Cleanup
 
     /// Remove all pending notifications
@@ -270,11 +324,19 @@ extension NotificationService {
             intentIdentifiers: []
         )
 
+        // Focus block category
+        let focusCategory = UNNotificationCategory(
+            identifier: "FOCUS_BLOCK",
+            actions: [],
+            intentIdentifiers: []
+        )
+
         center.setNotificationCategories([
             compensationCategory,
             deferredCategory,
             weekendCategory,
-            reminderCategory
+            reminderCategory,
+            focusCategory
         ])
     }
 }

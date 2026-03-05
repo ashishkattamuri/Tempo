@@ -5,6 +5,7 @@ import SwiftData
 struct TaskEditView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var focusBlockManager: FocusBlockManager
 
     let item: ScheduleItem?
     let selectedDate: Date
@@ -32,6 +33,9 @@ struct TaskEditView: View {
     @State private var isRecurring: Bool = false
     @State private var recurrenceDays: [Int] = []
     @State private var recurrenceEndDate: Date? = nil
+
+    // Focus Block state
+    @State private var focusGroupId: UUID? = nil
 
     /// Computed frequency based on selected days (7 days = daily, otherwise weekly)
     private var frequency: RecurrenceFrequency {
@@ -70,6 +74,9 @@ struct TaskEditView: View {
                     if category == .identityHabit {
                         identityHabitSection
                     }
+
+                    // Focus Block
+                    focusBlockSection
 
                     // Notes
                     notesSection
@@ -347,6 +354,50 @@ struct TaskEditView: View {
         .cornerRadius(16)
     }
 
+    private var focusBlockSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Toggle(isOn: Binding(
+                get: { focusGroupId != nil },
+                set: { enabled in
+                    if !enabled { focusGroupId = nil }
+                    else if let first = focusBlockManager.groups.first {
+                        focusGroupId = first.id
+                    }
+                }
+            )) {
+                HStack(spacing: 10) {
+                    Image(systemName: "moon.circle.fill")
+                        .foregroundColor(.indigo)
+                    Text("Focus Block")
+                        .font(.headline)
+                }
+            }
+            .tint(.indigo)
+
+            if focusGroupId != nil {
+                if focusBlockManager.groups.isEmpty {
+                    Text("Create a Focus Group in Settings → Focus Block first.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Picker("Focus Group", selection: Binding(
+                        get: { focusGroupId ?? focusBlockManager.groups.first?.id },
+                        set: { focusGroupId = $0 }
+                    )) {
+                        ForEach(focusBlockManager.groups) { group in
+                            Label(group.name, systemImage: group.symbol)
+                                .tag(Optional(group.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+    }
+
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Notes (optional)")
@@ -419,6 +470,9 @@ struct TaskEditView: View {
             isRecurring = item.isRecurring
             recurrenceDays = item.recurrenceDays
             recurrenceEndDate = item.recurrenceEndDate
+            if let raw = item.focusGroupIdRaw {
+                focusGroupId = UUID(uuidString: raw)
+            }
         } else if let defaultTime = defaultStartTime {
             startTime = defaultTime
             isEveningTask = defaultTime.isEvening
@@ -469,10 +523,16 @@ struct TaskEditView: View {
                 recurrenceEndDate: recurrenceEndDate
             )
 
+            newItem.focusGroupIdRaw = focusGroupId?.uuidString
             modelContext.insert(newItem)
 
             if isRecurring && !recurrenceDays.isEmpty {
                 generateRecurringInstances(for: newItem)
+            }
+
+            if newItem.isFocusBlock {
+                focusBlockManager.scheduleBlocking(for: newItem)
+                focusBlockManager.scheduleNotifications(for: newItem)
             }
 
             onSave(newItem)
@@ -496,6 +556,19 @@ struct TaskEditView: View {
         target.timesPerWeek = frequency == .weekly ? recurrenceDays.count : nil
         target.recurrenceDays = recurrenceDays
         target.recurrenceEndDate = recurrenceEndDate
+
+        // Handle focus block changes
+        let previousGroupId = target.focusGroupIdRaw
+        target.focusGroupIdRaw = focusGroupId?.uuidString
+        if previousGroupId != nil {
+            focusBlockManager.cancelBlocking(for: target)
+            focusBlockManager.cancelNotifications(for: target)
+        }
+        if target.isFocusBlock {
+            focusBlockManager.scheduleBlocking(for: target)
+            focusBlockManager.scheduleNotifications(for: target)
+        }
+
         target.touch()
     }
 
@@ -713,6 +786,7 @@ struct CategoryPickerScreen: View {
         onCancel: {}
     )
     .modelContainer(for: ScheduleItem.self, inMemory: true)
+    .environmentObject(FocusBlockManager())
 }
 
 #Preview("Edit Task") {
@@ -729,4 +803,5 @@ struct CategoryPickerScreen: View {
         onCancel: {}
     )
     .modelContainer(for: ScheduleItem.self, inMemory: true)
+    .environmentObject(FocusBlockManager())
 }

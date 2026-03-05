@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB1000000000000000000011 /* FocusGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000004 /* FocusGroup.swift */; };
+		FB1000000000000000000012 /* FocusBlockManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000005 /* FocusBlockManager.swift */; };
+		FB1000000000000000000013 /* FocusGroupListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000006 /* FocusGroupListView.swift */; };
+		FB1000000000000000000014 /* FocusGroupEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000007 /* FocusGroupEditView.swift */; };
+		FB1000000000000000000015 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000001 /* DeviceActivity.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		FB1000000000000000000016 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* ManagedSettings.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		FB1000000000000000000017 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000003 /* FamilyControls.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		FB1000000000000000000018 /* FocusBlockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000008 /* FocusBlockMonitor.swift */; };
+		FB1000000000000000000019 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000001 /* DeviceActivity.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		FB100000000000000000001C /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* ManagedSettings.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		FB100000000000000000001D /* TempoFocusExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FB100000000000000000000B /* TempoFocusExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		000000000000000000000001 /* TempoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* TempoApp.swift */; };
 		000000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* ContentView.swift */; };
 		000000000000000000000003 /* TaskCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* TaskCategory.swift */; };
@@ -67,9 +78,27 @@
 			remoteGlobalIDString = 400000000000000000000001;
 			remoteInfo = Tempo;
 		};
+		FB1000000000000000000027 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 600000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FB1000000000000000000020;
+			remoteInfo = TempoFocusExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		FB1000000000000000000001 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
+		FB1000000000000000000002 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		FB1000000000000000000003 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
+		FB1000000000000000000004 /* FocusGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusGroup.swift; sourceTree = "<group>"; };
+		FB1000000000000000000005 /* FocusBlockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusBlockManager.swift; sourceTree = "<group>"; };
+		FB1000000000000000000006 /* FocusGroupListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusGroupListView.swift; sourceTree = "<group>"; };
+		FB1000000000000000000007 /* FocusGroupEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusGroupEditView.swift; sourceTree = "<group>"; };
+		FB1000000000000000000008 /* FocusBlockMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusBlockMonitor.swift; sourceTree = "<group>"; };
+		FB1000000000000000000009 /* TempoFocusExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TempoFocusExtension.entitlements; sourceTree = "<group>"; };
+		FB100000000000000000000A /* TempoFocusExtension-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
+		FB100000000000000000000B /* TempoFocusExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TempoFocusExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		100000000000000000000000 /* Tempo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tempo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		100000000000000000000001 /* TempoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoApp.swift; sourceTree = "<group>"; };
 		100000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -132,6 +161,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000038 /* HealthKit.framework in Frameworks */,
+				FB1000000000000000000015 /* DeviceActivity.framework in Frameworks */,
+				FB1000000000000000000016 /* ManagedSettings.framework in Frameworks */,
+				FB1000000000000000000017 /* FamilyControls.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FB1000000000000000000021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB1000000000000000000019 /* DeviceActivity.framework in Frameworks */,
+				FB100000000000000000001C /* ManagedSettings.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -151,11 +192,22 @@
 			children = (
 				E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */,
 				300000000000000000000002 /* Tempo */,
+				FB1000000000000000000023 /* TempoFocusExtension */,
 				300000000000000000000003 /* Products */,
 				E180D2A42F338FE0006FC0B0 /* Recovered References */,
 				6123CFBB90DC8B4097C93CEF /* Frameworks */,
 				51249E57C7F2527C0A3A4E24 /* TempoTests */,
 			);
+			sourceTree = "<group>";
+		};
+		FB1000000000000000000023 /* TempoFocusExtension */ = {
+			isa = PBXGroup;
+			children = (
+				FB1000000000000000000008 /* FocusBlockMonitor.swift */,
+				FB1000000000000000000009 /* TempoFocusExtension.entitlements */,
+				FB100000000000000000000A /* TempoFocusExtension-Info.plist */,
+			);
+			path = TempoFocusExtension;
 			sourceTree = "<group>";
 		};
 		300000000000000000000002 /* Tempo */ = {
@@ -182,6 +234,7 @@
 			children = (
 				100000000000000000000000 /* Tempo.app */,
 				E572C1387B7F71918E542DF9 /* TempoTests.xctest */,
+				FB100000000000000000000B /* TempoFocusExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -204,6 +257,7 @@
 				100000000000000000000006 /* ReshuffleResult.swift */,
 				100000000000000000000041 /* CompensationRecord.swift */,
 				100000000000000000000046 /* RecurrenceFrequency.swift */,
+				FB1000000000000000000004 /* FocusGroup.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -325,6 +379,7 @@
 				100000000000000000000042 /* CompensationTracker.swift */,
 				100000000000000000000045 /* NotificationService.swift */,
 				79B448AE2F48DA1B0092638B /* CalendarService.swift */,
+				FB1000000000000000000005 /* FocusBlockManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -335,6 +390,8 @@
 				100000000000000000000037 /* SleepSettingsView.swift */,
 				100000000000000000000044 /* SettingsMenuView.swift */,
 				79B448AC2F48D9770092638B /* CalendarImportView.swift */,
+				FB1000000000000000000006 /* FocusGroupListView.swift */,
+				FB1000000000000000000007 /* FocusGroupEditView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -371,6 +428,9 @@
 			isa = PBXGroup;
 			children = (
 				4B5E52B6C7052E17C8DB4289 /* Foundation.framework */,
+				FB1000000000000000000001 /* DeviceActivity.framework */,
+				FB1000000000000000000002 /* ManagedSettings.framework */,
+				FB1000000000000000000003 /* FamilyControls.framework */,
 			);
 			name = iOS;
 			sourceTree = "<group>";
@@ -393,10 +453,12 @@
 				400000000000000000000002 /* Sources */,
 				200000000000000000000001 /* Frameworks */,
 				400000000000000000000003 /* Resources */,
+				FB1000000000000000000030 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FB1000000000000000000028 /* PBXTargetDependency */,
 			);
 			name = Tempo;
 			productName = Tempo;
@@ -421,6 +483,23 @@
 			productReference = E572C1387B7F71918E542DF9 /* TempoTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		FB1000000000000000000020 /* TempoFocusExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FB1000000000000000000026 /* Build configuration list for PBXNativeTarget "TempoFocusExtension" */;
+			buildPhases = (
+				FB1000000000000000000022 /* Sources */,
+				FB1000000000000000000021 /* Frameworks */,
+				FB1000000000000000000029 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TempoFocusExtension;
+			productName = TempoFocusExtension;
+			productReference = FB100000000000000000000B /* TempoFocusExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -432,6 +511,9 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					400000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					FB1000000000000000000020 = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -451,9 +533,24 @@
 			targets = (
 				400000000000000000000001 /* Tempo */,
 				404286255FBC0CE0037EB039 /* TempoTests */,
+				FB1000000000000000000020 /* TempoFocusExtension */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FB1000000000000000000030 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FB100000000000000000001D /* TempoFocusExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXResourcesBuildPhase section */
 		400000000000000000000003 /* Resources */ = {
@@ -467,6 +564,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9DCC2BE7D6D990E92AD8CAB8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FB1000000000000000000029 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -492,6 +596,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000001 /* TempoApp.swift in Sources */,
+				FB1000000000000000000011 /* FocusGroup.swift in Sources */,
+				FB1000000000000000000012 /* FocusBlockManager.swift in Sources */,
+				FB1000000000000000000013 /* FocusGroupListView.swift in Sources */,
+				FB1000000000000000000014 /* FocusGroupEditView.swift in Sources */,
 				000000000000000000000002 /* ContentView.swift in Sources */,
 				000000000000000000000003 /* TaskCategory.swift in Sources */,
 				000000000000000000000004 /* ScheduleItem.swift in Sources */,
@@ -535,6 +643,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FB1000000000000000000022 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB1000000000000000000018 /* FocusBlockMonitor.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -544,13 +660,19 @@
 			target = 400000000000000000000001 /* Tempo */;
 			targetProxy = B8897AE856DC7E393E1CEB7B /* PBXContainerItemProxy */;
 		};
+		FB1000000000000000000028 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = TempoFocusExtension;
+			target = FB1000000000000000000020 /* TempoFocusExtension */;
+			targetProxy = FB1000000000000000000027 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		198038763720CBC74CBF5572 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_IDENTIFIER = com.ashishkattamuri.Tempo.Tests;
+				BUNDLE_IDENTIFIER = com.scheduler.tempo.Tests;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -745,10 +867,60 @@
 			};
 			name = Release;
 		};
+		FB1000000000000000000024 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TempoFocusExtension/TempoFocusExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KTK23627V8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TempoFocusExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.blockmonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FB1000000000000000000025 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TempoFocusExtension/TempoFocusExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KTK23627V8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TempoFocusExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.blockmonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		8DBB685D159F9ECBFF4EBBCC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_IDENTIFIER = com.ashishkattamuri.Tempo.Tests;
+				BUNDLE_IDENTIFIER = com.scheduler.tempo.Tests;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -787,6 +959,15 @@
 			buildConfigurations = (
 				8DBB685D159F9ECBFF4EBBCC /* Release */,
 				198038763720CBC74CBF5572 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FB1000000000000000000026 /* Build configuration list for PBXNativeTarget "TempoFocusExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FB1000000000000000000024 /* Debug */,
+				FB1000000000000000000025 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -3,6 +3,9 @@
 <plist version="1.0">
 <dict>
 
+	<key>CFBundleDisplayName</key>
+	<string>Tempo: Smart Day</string>
+
 	<!-- HealthKit: read sleep data to avoid scheduling tasks during rest time -->
 	<key>NSHealthShareUsageDescription</key>
 	<string>Tempo reads your sleep schedule from Apple Health to avoid scheduling tasks during your rest time.</string>
