@@ -45,6 +45,8 @@ struct ReshuffleProposalView: View {
             Group {
                 if isLoading {
                     loadingView
+                } else if isEnhancing {
+                    aiThinkingView
                 } else if let result = result {
                     if hasActionableChanges(result) {
                         proposalContent(result)
@@ -67,6 +69,49 @@ struct ReshuffleProposalView: View {
     }
 
     // MARK: - States
+
+    private var aiThinkingView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "sparkles")
+                .font(.system(size: 52))
+                .foregroundStyle(.indigo)
+                .symbolEffect(.pulse)
+
+            VStack(spacing: 8) {
+                Text("Apple Intelligence is planning your day")
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                Text("Crafting a personalised plan based on your tasks, schedule and sleep.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+
+            Spacer()
+
+            // Let impatient users peek at the rule-based plan
+            if let result = result, hasActionableChanges(result) {
+                Button {
+                    isEnhancing = false
+                    showingAIProposal = false
+                } label: {
+                    Label("Standard plan is ready — view it", systemImage: "list.bullet")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.indigo)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(Color.indigo.opacity(0.1))
+                        .clipShape(Capsule())
+                }
+                .padding(.bottom, 32)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
     private var loadingView: some View {
         VStack(spacing: 16) {
