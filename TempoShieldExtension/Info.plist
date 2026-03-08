@@ -13,9 +13,9 @@
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.deviceactivity-monitor</string>
+		<string>com.apple.managed-settings.shield.configuration</string>
 		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).FocusBlockMonitor</string>
+		<string>$(PRODUCT_MODULE_NAME).TempoShieldConfiguration</string>
 	</dict>
 </dict>
 </plist>
