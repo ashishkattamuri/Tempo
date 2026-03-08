@@ -393,30 +393,38 @@ struct TaskEditView: View {
 
     private var focusBlockSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Toggle(isOn: Binding(
-                get: { focusGroupId != nil },
-                set: { enabled in
-                    if !enabled { focusGroupId = nil }
-                    else if let first = focusBlockManager.groups.first {
-                        focusGroupId = first.id
-                    }
-                }
-            )) {
+            if focusBlockManager.groups.isEmpty {
+                // No groups yet — show disabled toggle with clear call to action
                 HStack(spacing: 10) {
                     Image(systemName: "moon.circle.fill")
-                        .foregroundColor(.indigo)
-                    Text("Focus Block")
-                        .font(.headline)
-                }
-            }
-            .tint(.indigo)
-
-            if focusGroupId != nil {
-                if focusBlockManager.groups.isEmpty {
-                    Text("Create a Focus Group in Settings → Focus Block first.")
-                        .font(.caption)
                         .foregroundColor(.secondary)
-                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Focus Block")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("No Focus Groups yet. Go to Settings → Focus Block to create one.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                Toggle(isOn: Binding(
+                    get: { focusGroupId != nil },
+                    set: { enabled in
+                        if !enabled { focusGroupId = nil }
+                        else { focusGroupId = focusBlockManager.groups.first?.id }
+                    }
+                )) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "moon.circle.fill")
+                            .foregroundColor(.indigo)
+                        Text("Focus Block")
+                            .font(.headline)
+                    }
+                }
+                .tint(.indigo)
+
+                if focusGroupId != nil {
                     Picker("Focus Group", selection: Binding(
                         get: { focusGroupId ?? focusBlockManager.groups.first?.id },
                         set: { focusGroupId = $0 }
