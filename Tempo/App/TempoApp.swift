@@ -43,12 +43,16 @@ struct TempoApp: App {
     /// Shared compensation tracker for makeup sessions
     @StateObject private var compensationTracker = CompensationTracker()
 
+    /// Shared focus block manager for app blocking during focus sessions
+    @StateObject private var focusBlockManager = FocusBlockManager()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(sleepManager)
                 .environmentObject(compensationTracker)
-                .preferredColorScheme(selectedAppearance.colorScheme) // ✅ Applied here
+                .environmentObject(focusBlockManager)
+                .preferredColorScheme(selectedAppearance.colorScheme)
                 .onAppear {
                     setupNotifications()
                 }

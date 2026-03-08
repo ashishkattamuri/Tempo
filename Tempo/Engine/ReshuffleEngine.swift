@@ -830,8 +830,17 @@ extension ReshuffleEngine {
                     candidateTime < item.endTime && finalEnd > item.startTime
                 }
                 if !stillHasConflict {
-                    debugLog("  │ ✓ FOUND free slot: \(fmt.string(from: candidateTime))")
-                    foundValidSlot = true
+                    // Also reject if the task's END TIME would bleed into the sleep buffer
+                    if let sleepRange = sleepManager?.getSleepBlockedRange(for: candidateTime),
+                       finalEnd > sleepRange.bufferStart,
+                       candidateTime < sleepRange.wakeTime {
+                        debugLog("  │ ⛔ Slot end \(fmt.string(from: finalEnd)) bleeds into sleep buffer — jumping to wake")
+                        candidateTime = sleepRange.wakeTime
+                        ensureNotInPast()
+                    } else {
+                        debugLog("  │ ✓ FOUND free slot: \(fmt.string(from: candidateTime))")
+                        foundValidSlot = true
+                    }
                 }
             }
 
