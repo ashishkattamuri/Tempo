@@ -298,3 +298,92 @@ final class SchedulingAssistant {
         return cal.date(from: components)
     }
 }
+
+// MARK: - Weekly Retrospective
+
+@available(iOS 26, *)
+extension SchedulingAssistant {
+
+    @Generable
+    struct WeeklyRetrospective {
+        @Guide(description: """
+            Warm, compassionate 2-3 sentence summary of the week.
+            Reference specific numbers naturally (e.g. '14 of 20 tasks').
+            Forbidden words: missed, failed, behind, skipped, lazy.
+            Preferred words: completed, achieved, adjusted, protected, progressed.
+            """)
+        var summary: String
+
+        @Guide(description: """
+            One specific pattern or insight observed this week.
+            Be concrete — reference a category or day if notable.
+            Max 2 sentences.
+            """)
+        var insight: String
+
+        @Guide(description: """
+            One actionable suggestion for next week.
+            Specific and practical, not generic.
+            Max 2 sentences.
+            """)
+        var suggestion: String
+
+        @Guide(description: "Short motivating closing line, max 10 words.")
+        var encouragement: String
+    }
+
+    func generateRetrospective(stats: WeeklyStats) async -> WeeklyRetrospective? {
+        guard let session else { return nil }
+
+        let prompt = buildRetrospectivePrompt(stats: stats)
+
+        do {
+            let response = try await session.respond(
+                to: prompt,
+                generating: WeeklyRetrospective.self
+            )
+            return response.content
+        } catch {
+            return nil
+        }
+    }
+
+    private func buildRetrospectivePrompt(stats: WeeklyStats) -> String {
+        let dateFmt = DateFormatter()
+        dateFmt.dateFormat = "EEE MMM d"
+
+        var lines: [String] = [
+            "=== WEEKLY REVIEW ===",
+            "Week: \(dateFmt.string(from: stats.weekStart)) – \(dateFmt.string(from: stats.weekEnd))",
+            "",
+            "Overall: \(stats.totalCompleted) of \(stats.totalScheduled) tasks completed (\(Int(stats.completionRate * 100))%)",
+            "Time invested: \(stats.totalHoursCompleted)h \(stats.totalMinutesCompleted % 60)min",
+            ""
+        ]
+
+        lines.append("By category:")
+        for row in stats.byCategory {
+            let pct = row.scheduled > 0 ? Int(Double(row.completed) / Double(row.scheduled) * 100) : 0
+            lines.append("  • \(row.category.displayName): \(row.completed)/\(row.scheduled) (\(pct)%)")
+        }
+
+        if let best = stats.bestDay {
+            lines.append("\nBest day: \(dateFmt.string(from: best.date)) — \(best.completed) tasks completed")
+        }
+        if let hardest = stats.hardestDay {
+            lines.append("Most challenging day: \(dateFmt.string(from: hardest.date)) — \(hardest.completed)/\(hardest.scheduled) completed")
+        }
+
+        if stats.identityHabitStreak > 0 {
+            lines.append("Identity habit streak: \(stats.identityHabitStreak) days in a row")
+        }
+
+        lines.append("""
+
+        Write a compassionate weekly retrospective: summary, one specific insight, \
+        one actionable suggestion for next week, and a short encouraging close.
+        """)
+
+        return lines.joined(separator: "\n")
+    }
+}
