@@ -17,7 +17,7 @@
 		FB1000000000000000000018 /* FocusBlockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000008 /* FocusBlockMonitor.swift */; };
 		FB1000000000000000000019 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000001 /* DeviceActivity.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		FB100000000000000000001C /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* ManagedSettings.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
-		FB100000000000000000001D /* TempoFocusExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FB100000000000000000000B /* TempoFocusExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FB100000000000000000001D /* TempoFocusExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FB100000000000000000000B /* TempoFocusExtension.appex */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		000000000000000000000001 /* TempoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* TempoApp.swift */; };
 		000000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* ContentView.swift */; };
 		000000000000000000000003 /* TaskCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* TaskCategory.swift */; };
@@ -68,6 +68,9 @@
 		E9FD94BF54710F2A8F5F6C22 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B5E52B6C7052E17C8DB4289 /* Foundation.framework */; };
 		EF61B8A9B20B29A83DCA5CB1 /* ReshuffleEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */; };
 		FB8199F254B18929D95D3E19 /* SummaryGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E548CA394FD65D86A6152E7 /* SummaryGeneratorTests.swift */; };
+		FB100000000000000000001E /* SchedulingAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB100000000000000000000C /* SchedulingAssistant.swift */; };
+		FB100000000000000000001F /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB100000000000000000000D /* FoundationModels.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		7930B90B2F48EC6C0083955E /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7930B90A2F48EC6C0083955E /* AppAppearance.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,8 +94,11 @@
 		FB1000000000000000000001 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
 		FB1000000000000000000002 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		FB1000000000000000000003 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
+		7930B90A2F48EC6C0083955E /* AppAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearance.swift; sourceTree = "<group>"; };
 		FB1000000000000000000004 /* FocusGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusGroup.swift; sourceTree = "<group>"; };
 		FB1000000000000000000005 /* FocusBlockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusBlockManager.swift; sourceTree = "<group>"; };
+		FB100000000000000000000C /* SchedulingAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulingAssistant.swift; sourceTree = "<group>"; };
+		FB100000000000000000000D /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = System/Library/Frameworks/FoundationModels.framework; sourceTree = SDKROOT; };
 		FB1000000000000000000006 /* FocusGroupListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusGroupListView.swift; sourceTree = "<group>"; };
 		FB1000000000000000000007 /* FocusGroupEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusGroupEditView.swift; sourceTree = "<group>"; };
 		FB1000000000000000000008 /* FocusBlockMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusBlockMonitor.swift; sourceTree = "<group>"; };
@@ -164,6 +170,7 @@
 				FB1000000000000000000015 /* DeviceActivity.framework in Frameworks */,
 				FB1000000000000000000016 /* ManagedSettings.framework in Frameworks */,
 				FB1000000000000000000017 /* FamilyControls.framework in Frameworks */,
+				FB100000000000000000001F /* FoundationModels.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +265,7 @@
 				100000000000000000000041 /* CompensationRecord.swift */,
 				100000000000000000000046 /* RecurrenceFrequency.swift */,
 				FB1000000000000000000004 /* FocusGroup.swift */,
+				7930B90A2F48EC6C0083955E /* AppAppearance.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -380,6 +388,7 @@
 				100000000000000000000045 /* NotificationService.swift */,
 				79B448AE2F48DA1B0092638B /* CalendarService.swift */,
 				FB1000000000000000000005 /* FocusBlockManager.swift */,
+				FB100000000000000000000C /* SchedulingAssistant.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -431,6 +440,7 @@
 				FB1000000000000000000001 /* DeviceActivity.framework */,
 				FB1000000000000000000002 /* ManagedSettings.framework */,
 				FB1000000000000000000003 /* FamilyControls.framework */,
+				FB100000000000000000000D /* FoundationModels.framework */,
 			);
 			name = iOS;
 			sourceTree = "<group>";
@@ -598,6 +608,7 @@
 				000000000000000000000001 /* TempoApp.swift in Sources */,
 				FB1000000000000000000011 /* FocusGroup.swift in Sources */,
 				FB1000000000000000000012 /* FocusBlockManager.swift in Sources */,
+				FB100000000000000000001E /* SchedulingAssistant.swift in Sources */,
 				FB1000000000000000000013 /* FocusGroupListView.swift in Sources */,
 				FB1000000000000000000014 /* FocusGroupEditView.swift in Sources */,
 				000000000000000000000002 /* ContentView.swift in Sources */,
@@ -614,6 +625,7 @@
 				000000000000000000000013 /* CategoryProcessor.swift in Sources */,
 				000000000000000000000014 /* NonNegotiableProcessor.swift in Sources */,
 				000000000000000000000015 /* IdentityHabitProcessor.swift in Sources */,
+				7930B90B2F48EC6C0083955E /* AppAppearance.swift in Sources */,
 				000000000000000000000016 /* FlexibleTaskProcessor.swift in Sources */,
 				000000000000000000000017 /* OptionalGoalProcessor.swift in Sources */,
 				000000000000000000000018 /* OverflowDetector.swift in Sources */,

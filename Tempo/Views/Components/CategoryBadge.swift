@@ -49,8 +49,8 @@ struct CategoryBadge: View {
         }
         .padding(.horizontal, size.padding)
         .padding(.vertical, size.padding / 2)
-        .background(category.color.opacity(0.15))
-        .foregroundColor(category.color)
+        .background(category.color.opacity(0.15)) 
+        .foregroundStyle(category.color)       
         .cornerRadius(Constants.cornerRadius / 2)
         .accessibilityLabel("\(category.displayName) category")
     }
