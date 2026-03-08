@@ -17,7 +17,7 @@
 		FB1000000000000000000018 /* FocusBlockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000008 /* FocusBlockMonitor.swift */; };
 		FB1000000000000000000019 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000001 /* DeviceActivity.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		FB100000000000000000001C /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* ManagedSettings.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
-		FB100000000000000000001D /* TempoFocusExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FB100000000000000000000B /* TempoFocusExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FB100000000000000000001D /* TempoFocusExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FB100000000000000000000B /* TempoFocusExtension.appex */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		000000000000000000000001 /* TempoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* TempoApp.swift */; };
 		000000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* ContentView.swift */; };
 		000000000000000000000003 /* TaskCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* TaskCategory.swift */; };
