@@ -10,6 +10,7 @@ struct ConflictResolutionData: Identifiable {
 /// Main daily schedule view - Structured-inspired timeline design.
 struct ScheduleView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var sleepManager: SleepManager
     @EnvironmentObject private var focusBlockManager: FocusBlockManager
     @Binding var selectedDate: Date
@@ -182,6 +183,11 @@ struct ScheduleView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Tempo")
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                focusBlockManager.refreshShieldsIfNeeded(for: Array(allItems))
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

@@ -435,50 +435,6 @@ struct TaskEditView: View {
         .cornerRadius(16)
     }
 
-    private var focusBlockSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Toggle(isOn: Binding(
-                get: { focusGroupId != nil },
-                set: { enabled in
-                    if !enabled { focusGroupId = nil }
-                    else if let first = focusBlockManager.groups.first {
-                        focusGroupId = first.id
-                    }
-                }
-            )) {
-                HStack(spacing: 10) {
-                    Image(systemName: "moon.circle.fill")
-                        .foregroundColor(.indigo)
-                    Text("Focus Block")
-                        .font(.headline)
-                }
-            }
-            .tint(.indigo)
-
-            if focusGroupId != nil {
-                if focusBlockManager.groups.isEmpty {
-                    Text("Create a Focus Group in Settings → Focus Block first.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    Picker("Focus Group", selection: Binding(
-                        get: { focusGroupId ?? focusBlockManager.groups.first?.id },
-                        set: { focusGroupId = $0 }
-                    )) {
-                        ForEach(focusBlockManager.groups) { group in
-                            Label(group.name, systemImage: group.symbol)
-                                .tag(Optional(group.id))
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-    }
-
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Notes (optional)")
