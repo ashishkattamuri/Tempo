@@ -185,7 +185,7 @@ struct ScheduleView: View {
         .navigationTitle("Tempo")
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                focusBlockManager.refreshShieldsIfNeeded(for: Array(allItems))
+                focusBlockManager.syncShields(for: Array(allItems))
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -922,6 +922,10 @@ struct ScheduleView: View {
         item.touch()
         if item.isCompleted {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            // If this was an active focus block task, sync shields immediately
+            if item.isFocusBlock {
+                focusBlockManager.syncShields(for: Array(allItems))
+            }
         }
     }
 

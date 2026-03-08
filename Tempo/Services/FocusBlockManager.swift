@@ -159,21 +159,25 @@ final class FocusBlockManager: ObservableObject {
         print("FocusBlockManager: Cleared all shields")
     }
 
-    /// Check all tasks and re-apply shields if one is currently active.
-    /// Call this on app foreground to cover cases where the extension didn't fire.
-    func refreshShieldsIfNeeded(for allTasks: [ScheduleItem]) {
+    /// Sync shields with reality: apply if a focus task is currently active, clear if not.
+    /// Call on app foreground to catch both missed intervalDidStart AND missed intervalDidEnd.
+    func syncShields(for allTasks: [ScheduleItem]) {
         let now = Date()
-        guard let activeTask = allTasks.first(where: {
+        let activeTask = allTasks.first(where: {
             $0.isFocusBlock && !$0.isCompleted && $0.startTime <= now && $0.endTime > now
-        }) else {
-            return
-        }
-        guard let groupIdStr = activeTask.focusGroupIdRaw,
-              let groupId = UUID(uuidString: groupIdStr),
-              let group = groups.first(where: { $0.id == groupId }) else { return }
+        })
 
-        print("FocusBlockManager: Active focus task '\(activeTask.title)' detected — refreshing shields")
-        applyShields(for: group)
+        if let activeTask,
+           let groupIdStr = activeTask.focusGroupIdRaw,
+           let groupId = UUID(uuidString: groupIdStr),
+           let group = groups.first(where: { $0.id == groupId }) {
+            print("FocusBlockManager: Active focus task '\(activeTask.title)' — applying shields")
+            applyShields(for: group)
+        } else {
+            // No active focus task — ensure shields are cleared
+            print("FocusBlockManager: No active focus task — clearing shields")
+            clearShields()
+        }
     }
 
     // MARK: - Notifications
