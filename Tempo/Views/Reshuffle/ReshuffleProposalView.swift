@@ -135,10 +135,11 @@ struct ReshuffleProposalView: View {
                     .font(.title3)
                     .fontWeight(.semibold)
 
-            Text("No changes needed for today's schedule.")
-                .font(.subheadline)
-            .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                Text("No changes needed for today's schedule.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
 
             Button("Done", action: onCancel)
                 .buttonStyle(.borderedProminent)

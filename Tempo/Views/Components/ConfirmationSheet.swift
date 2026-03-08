@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// Data model for evening protection decisions.
+struct EveningDecision {
+    let iconName: String
+    let message: String
+    let affectedItems: [ScheduleItem]
+}
+
 /// Reusable confirmation dialog for important actions.
 struct ConfirmationSheet: View {
     let title: String
