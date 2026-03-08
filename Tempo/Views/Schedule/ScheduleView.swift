@@ -11,6 +11,7 @@ struct ConflictResolutionData: Identifiable {
 struct ScheduleView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var sleepManager: SleepManager
+    @EnvironmentObject private var focusBlockManager: FocusBlockManager
     @Binding var selectedDate: Date
     let onAddTask: () -> Void
     let onEditTask: (ScheduleItem) -> Void
@@ -139,10 +140,24 @@ struct ScheduleView: View {
         return itemsForSelectedDate.contains { !$0.isCompleted && $0.startTime < now }
     }
 
+    /// The currently active focus block task (if any) for today.
+    private var activeFocusTask: ScheduleItem? {
+        guard selectedDate.isToday else { return nil }
+        let now = Date()
+        return allItems.first {
+            $0.isFocusBlock && !$0.isCompleted && $0.startTime <= now && $0.endTime > now
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Week calendar header
             weekCalendarHeader
+
+            // Focus active banner — shown when a focus block task is currently running
+            if let focusTask = activeFocusTask {
+                focusBanner(task: focusTask)
+            }
 
             // "Fix My Day" banner — visible when today has past incomplete tasks
             if hasPastIncompleteItems {
@@ -355,6 +370,33 @@ struct ScheduleView: View {
     }
 
     // MARK: - Fix My Day Banner
+
+    @ViewBuilder
+    private func focusBanner(task: ScheduleItem) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "moon.circle.fill")
+                .foregroundColor(.indigo)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Focus active")
+                    .font(.caption2)
+                    .foregroundColor(.indigo.opacity(0.8))
+                Text(task.title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.indigo)
+            }
+
+            Spacer()
+
+            Text("until \(task.endTime, style: .time)")
+                .font(.caption)
+                .foregroundColor(.indigo.opacity(0.7))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.indigo.opacity(0.08))
+    }
 
     private var fixMyDayBanner: some View {
         Button(action: onReshuffle) {

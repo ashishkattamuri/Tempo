@@ -348,4 +348,5 @@ struct ContentView: View {
         .modelContainer(for: ScheduleItem.self, inMemory: true)
         .environmentObject(SleepManager())
         .environmentObject(CompensationTracker())
+        .environmentObject(FocusBlockManager())
 }

@@ -5,6 +5,7 @@ struct SettingsMenuView: View {
 
     @ObservedObject var sleepManager: SleepManager
     @ObservedObject var compensationTracker: CompensationTracker
+    @EnvironmentObject var focusBlockManager: FocusBlockManager
     let onDismiss: () -> Void
 
     // MARK: - Appearance (NEW)
@@ -38,6 +39,26 @@ struct SettingsMenuView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                        }
+                    }
+                }
+
+                NavigationLink {
+                    FocusGroupListView()
+                        .environmentObject(focusBlockManager)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "moon.circle.fill")
+                            .foregroundColor(.indigo)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Focus Block")
+                                .font(.body)
+                            let count = focusBlockManager.groups.count
+                            Text(count == 0 ? "Not configured" : "\(count) group\(count == 1 ? "" : "s") configured")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -143,5 +164,6 @@ struct SettingsMenuView: View {
             compensationTracker: CompensationTracker(),
             onDismiss: {}
         )
+        .environmentObject(FocusBlockManager())
     }
 }

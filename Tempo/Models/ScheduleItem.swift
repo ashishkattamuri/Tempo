@@ -74,6 +74,9 @@ final class ScheduleItem {
     /// Links to the original deferred task
     var originalTaskId: UUID?
 
+    /// UUID string of the selected FocusGroup; nil means no focus block
+    var focusGroupIdRaw: String?
+
     /// Creation timestamp
     var createdAt: Date
 
@@ -126,6 +129,9 @@ final class ScheduleItem {
         guard let min = minimumDurationMinutes else { return nil }
         return TimeInterval(min * 60)
     }
+
+    /// Whether this task has an active focus block configured
+    var isFocusBlock: Bool { focusGroupIdRaw != nil }
 
     /// Whether this task can be compressed (has a minimum duration less than current)
     var isCompressible: Bool {
@@ -196,7 +202,8 @@ final class ScheduleItem {
         isRecurrenceInstance: Bool = false,
         compensationDebtMinutes: Int = 0,
         isCompensationTask: Bool = false,
-        originalTaskId: UUID? = nil
+        originalTaskId: UUID? = nil,
+        focusGroupIdRaw: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -219,6 +226,7 @@ final class ScheduleItem {
         self.compensationDebtMinutes = compensationDebtMinutes
         self.isCompensationTask = isCompensationTask
         self.originalTaskId = originalTaskId
+        self.focusGroupIdRaw = focusGroupIdRaw
         self.createdAt = Date()
         self.updatedAt = Date()
     }
