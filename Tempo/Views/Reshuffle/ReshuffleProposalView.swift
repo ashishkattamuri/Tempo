@@ -16,6 +16,11 @@ struct ReshuffleProposalView: View {
     /// Maps a `.requiresUserDecision` Change ID → the option the user tapped.
     @State private var selectedOptionByChangeId: [UUID: Change.UserOption] = [:]
 
+    // Apple Intelligence enhancement
+    @State private var aiSummary: String?
+    @State private var aiEncouragement: String?
+    @State private var isEnhancing = false
+
     private var itemsForDate: [ScheduleItem] {
         allItems.filter { $0.scheduledDate.isSameDay(as: selectedDate) }
     }
@@ -104,9 +109,48 @@ struct ReshuffleProposalView: View {
         VStack(spacing: 0) {
             statBar(result)
             Divider()
+            if isEnhancing || aiSummary != nil {
+                aiInsightBanner
+                Divider()
+            }
             changesList(result)
             actionBar(result)
         }
+    }
+
+    @ViewBuilder
+    private var aiInsightBanner: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.subheadline)
+                .foregroundStyle(.indigo)
+                .frame(width: 20)
+
+            if isEnhancing {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Apple Intelligence is reviewing your day...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let summary = aiSummary {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                    if let encouragement = aiEncouragement {
+                        Text(encouragement)
+                            .font(.caption)
+                            .foregroundStyle(.indigo)
+                            .fontWeight(.medium)
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color.indigo.opacity(0.06))
     }
 
     /// A compact row of chips summarising the counts (Moved · Adjusted · Deferred)
@@ -326,12 +370,31 @@ struct ReshuffleProposalView: View {
 
     private func analyzeSchedule() {
         isLoading = true
+        aiSummary = nil
+        aiEncouragement = nil
         Task { @MainActor in
             let engine = ReshuffleEngine()
             // Pass ALL items so the engine can find real free slots on future days
-            result = engine.analyze(items: Array(allItems), for: selectedDate)
+            let engineResult = engine.analyze(items: Array(allItems), for: selectedDate)
+            result = engineResult
             isLoading = false
+
+            // Enhance with Apple Intelligence if available (iOS 26+)
+            await enhanceWithAI(changes: engineResult.changes)
         }
+    }
+
+    private func enhanceWithAI(changes: [Change]) async {
+        guard #available(iOS 26, *) else { return }
+        let hasActionable = changes.contains { if case .protected = $0.action { return false }; return true }
+        guard hasActionable else { return }
+
+        isEnhancing = true
+        if let insight = await SchedulingAssistant.shared.enhance(changes: changes) {
+            aiSummary = insight.summary
+            aiEncouragement = insight.encouragement
+        }
+        isEnhancing = false
     }
 
     private func applyChanges(_ changes: [Change]) {
