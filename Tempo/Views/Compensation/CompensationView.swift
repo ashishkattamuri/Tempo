@@ -56,7 +56,7 @@ struct CompensationView: View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 60))
-                .foregroundColor(.green)
+             .foregroundStyle(.green)
 
             Text("All Caught Up!")
                 .font(.title2)
@@ -64,7 +64,7 @@ struct CompensationView: View {
 
             Text("You have no pending makeup sessions.\nKeep up the great work!")
                 .font(.body)
-                .foregroundColor(.secondary)
+               .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -80,11 +80,11 @@ struct CompensationView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Time to make up")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text(compensationTracker.formattedPendingTime)
                             .font(.title)
                             .fontWeight(.bold)
-                            .foregroundColor(.orange)
+                            .foregroundStyle(.orange)
                     }
 
                     Spacer()
@@ -92,7 +92,7 @@ struct CompensationView: View {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Tasks")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text("\(compensationTracker.pendingCompensations.count)")
                             .font(.title)
                             .fontWeight(.bold)
@@ -125,14 +125,14 @@ struct CompensationView: View {
 
                 HStack {
                     Image(systemName: "calendar.badge.clock")
-                        .foregroundColor(.blue)
+                  .foregroundStyle(.blue)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Free time this weekend")
                             .font(.subheadline)
                         Text(formatMinutes(weekendMinutes))
                             .font(.headline)
-                            .foregroundColor(.blue)
+                           .foregroundStyle(.blue)
                     }
                 }
             }
@@ -196,17 +196,17 @@ struct CompensationRowView: View {
 
                 Text("\(record.remainingMinutes) min")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                   .foregroundStyle(.secondary)
             }
 
             HStack {
                 Text(record.reasonDescription)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                 .foregroundStyle(.secondary)
 
                 Text("on \(formattedDate)")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                   .foregroundStyle(.secondary)
             }
 
             HStack(spacing: 12) {
@@ -262,7 +262,7 @@ struct SlotPickerSheet: View {
                                 .font(.headline)
                             Text("\(record.remainingMinutes) minutes needed")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                              .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -288,13 +288,13 @@ struct SlotPickerSheet: View {
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 4)
                                             .background(Color.blue.opacity(0.1))
-                                            .foregroundColor(.blue)
+                                         .foregroundStyle(.blue)
                                             .cornerRadius(6)
                                     }
 
                                     Image(systemName: "chevron.right")
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                     .foregroundStyle(.secondary)
                                 }
                             }
                             .buttonStyle(.plain)
