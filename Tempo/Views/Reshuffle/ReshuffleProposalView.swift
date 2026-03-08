@@ -4,6 +4,7 @@ import SwiftData
 /// View displaying proposed schedule adjustments for user approval.
 struct ReshuffleProposalView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sleepManager: SleepManager
     @Query private var allItems: [ScheduleItem]
 
     let selectedDate: Date
@@ -16,10 +17,24 @@ struct ReshuffleProposalView: View {
     /// Maps a `.requiresUserDecision` Change ID → the option the user tapped.
     @State private var selectedOptionByChangeId: [UUID: Change.UserOption] = [:]
 
-    // Apple Intelligence enhancement
+    // Apple Intelligence — parallel AI plan
+    @State private var aiChanges: [Change]?       // AI-proposed changes (nil = not ready yet)
     @State private var aiSummary: String?
     @State private var aiEncouragement: String?
     @State private var isEnhancing = false
+    @State private var showingAIProposal = false  // true = user switched to the AI plan
+
+    /// The active set of changes to display and apply — switches between engine and AI plan.
+    private var displayResult: ReshuffleResult? {
+        guard let result else { return nil }
+        if showingAIProposal, let aiChanges, !aiChanges.isEmpty {
+            // Merge AI changes with any non-negotiable items the engine flagged
+            // (AI only handles flexible/habit tasks, not user-decision items)
+            let decisionItems = result.itemsRequiringDecision
+            return ReshuffleResult(changes: aiChanges + decisionItems, summary: aiSummary ?? result.summary)
+        }
+        return result
+    }
 
     private var itemsForDate: [ScheduleItem] {
         allItems.filter { $0.scheduledDate.isSameDay(as: selectedDate) }
@@ -106,15 +121,16 @@ struct ReshuffleProposalView: View {
     // MARK: - Proposal Content
 
     private func proposalContent(_ result: ReshuffleResult) -> some View {
-        VStack(spacing: 0) {
-            statBar(result)
+        let displayed = displayResult ?? result
+        return VStack(spacing: 0) {
+            statBar(displayed)
             Divider()
-            if isEnhancing || aiSummary != nil {
+            if isEnhancing || aiChanges != nil {
                 aiInsightBanner
                 Divider()
             }
-            changesList(result)
-            actionBar(result)
+            changesList(displayed)
+            actionBar(displayed)
         }
     }
 
@@ -127,22 +143,30 @@ struct ReshuffleProposalView: View {
                 .frame(width: 20)
 
             if isEnhancing {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Apple Intelligence is reviewing your day...")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            } else if let summary = aiSummary {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(summary)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
+                Text("Apple Intelligence is planning your day...")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else if aiChanges != nil {
+                VStack(alignment: .leading, spacing: 6) {
+                    if let summary = aiSummary {
+                        Text(summary)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                    }
                     if let encouragement = aiEncouragement {
                         Text(encouragement)
                             .font(.caption)
                             .foregroundStyle(.indigo)
                             .fontWeight(.medium)
                     }
+                    Button(showingAIProposal ? "Switch to standard plan" : "Switch to Apple Intelligence plan") {
+                        showingAIProposal.toggle()
+                        skippedChangeIds = []
+                        selectedOptionByChangeId = [:]
+                    }
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(showingAIProposal ? Color.secondary : Color.indigo)
                 }
             }
 
@@ -370,29 +394,56 @@ struct ReshuffleProposalView: View {
 
     private func analyzeSchedule() {
         isLoading = true
+        aiChanges = nil
         aiSummary = nil
         aiEncouragement = nil
+        showingAIProposal = false
         Task { @MainActor in
             let engine = ReshuffleEngine()
-            // Pass ALL items so the engine can find real free slots on future days
+            engine.sleepManager = sleepManager
             let engineResult = engine.analyze(items: Array(allItems), for: selectedDate)
             result = engineResult
             isLoading = false
 
-            // Enhance with Apple Intelligence if available (iOS 26+)
-            await enhanceWithAI(changes: engineResult.changes)
+            await proposeWithAI(engineChanges: engineResult.changes, allItems: Array(allItems))
         }
     }
 
-    private func enhanceWithAI(changes: [Change]) async {
+    private func proposeWithAI(engineChanges: [Change], allItems: [ScheduleItem]) async {
         guard #available(iOS 26, *) else { return }
-        let hasActionable = changes.contains { if case .protected = $0.action { return false }; return true }
-        guard hasActionable else { return }
+
+        // Only pass the actionable (non-protected, non-decision) overdue tasks to the AI
+        let overdueTasks = engineChanges.compactMap { change -> ScheduleItem? in
+            switch change.action {
+            case .protected, .requiresUserDecision: return nil
+            default: return change.item
+            }
+        }
+        guard !overdueTasks.isEmpty else { return }
 
         isEnhancing = true
-        if let insight = await SchedulingAssistant.shared.enhance(changes: changes) {
-            aiSummary = insight.summary
-            aiEncouragement = insight.encouragement
+        if let proposal = await SchedulingAssistant.shared.proposeReschedule(
+            overdueTasks: overdueTasks,
+            allItems: allItems,
+            date: selectedDate,
+            sleepManager: sleepManager
+        ) {
+            let converted = SchedulingAssistant.shared.convertToChanges(
+                proposal: proposal,
+                overdueTasks: overdueTasks,
+                date: selectedDate,
+                allItems: allItems,
+                sleepManager: sleepManager
+            )
+            aiChanges = converted
+            aiSummary = proposal.summary
+            aiEncouragement = proposal.encouragement
+            // Auto-switch to AI plan once it's ready
+            if !converted.isEmpty {
+                showingAIProposal = true
+                skippedChangeIds = []
+                selectedOptionByChangeId = [:]
+            }
         }
         isEnhancing = false
     }
