@@ -73,6 +73,10 @@
 		7930B90B2F48EC6C0083955E /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7930B90A2F48EC6C0083955E /* AppAppearance.swift */; };
 		FB200000000000000000001C /* WeeklyStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB200000000000000000001A /* WeeklyStats.swift */; };
 		FB200000000000000000001D /* WeeklyRetrospectiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB200000000000000000001B /* WeeklyRetrospectiveView.swift */; };
+		FB3000000000000000000006 /* TempoShieldConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3000000000000000000001 /* TempoShieldConfiguration.swift */; };
+		FB3000000000000000000007 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* ManagedSettings.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		FB3000000000000000000008 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB3000000000000000000005 /* ManagedSettingsUI.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		FB3000000000000000000009 /* TempoShieldExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FB3000000000000000000004 /* TempoShieldExtension.appex */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -89,6 +93,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = FB1000000000000000000020;
 			remoteInfo = TempoFocusExtension;
+		};
+		FB3000000000000000000012 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 600000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FB300000000000000000000C;
+			remoteInfo = TempoShieldExtension;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -163,6 +174,11 @@
 		E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E572C1387B7F71918E542DF9 /* TempoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TempoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EDD92A9760F6B3C16681DA1E /* ReshuffleEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReshuffleEngineTests.swift; sourceTree = "<group>"; };
+		FB3000000000000000000001 /* TempoShieldConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoShieldConfiguration.swift; sourceTree = "<group>"; };
+		FB3000000000000000000002 /* TempoShieldExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TempoShieldExtension.entitlements; sourceTree = "<group>"; };
+		FB3000000000000000000003 /* TempoShieldExtension-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
+		FB3000000000000000000004 /* TempoShieldExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TempoShieldExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB3000000000000000000005 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -195,6 +211,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FB300000000000000000000A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB3000000000000000000007 /* ManagedSettings.framework in Frameworks */,
+				FB3000000000000000000008 /* ManagedSettingsUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -204,6 +229,7 @@
 				E131D87C2F497E3F007DB74A /* PrivacyInfo.xcprivacy */,
 				300000000000000000000002 /* Tempo */,
 				FB1000000000000000000023 /* TempoFocusExtension */,
+				FB300000000000000000000B /* TempoShieldExtension */,
 				300000000000000000000003 /* Products */,
 				E180D2A42F338FE0006FC0B0 /* Recovered References */,
 				6123CFBB90DC8B4097C93CEF /* Frameworks */,
@@ -219,6 +245,16 @@
 				FB100000000000000000000A /* TempoFocusExtension-Info.plist */,
 			);
 			path = TempoFocusExtension;
+			sourceTree = "<group>";
+		};
+		FB300000000000000000000B /* TempoShieldExtension */ = {
+			isa = PBXGroup;
+			children = (
+				FB3000000000000000000001 /* TempoShieldConfiguration.swift */,
+				FB3000000000000000000002 /* TempoShieldExtension.entitlements */,
+				FB3000000000000000000003 /* TempoShieldExtension-Info.plist */,
+			);
+			path = TempoShieldExtension;
 			sourceTree = "<group>";
 		};
 		300000000000000000000002 /* Tempo */ = {
@@ -246,6 +282,7 @@
 				100000000000000000000000 /* Tempo.app */,
 				E572C1387B7F71918E542DF9 /* TempoTests.xctest */,
 				FB100000000000000000000B /* TempoFocusExtension.appex */,
+				FB3000000000000000000004 /* TempoShieldExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -447,6 +484,7 @@
 				FB1000000000000000000002 /* ManagedSettings.framework */,
 				FB1000000000000000000003 /* FamilyControls.framework */,
 				FB100000000000000000000D /* FoundationModels.framework */,
+				FB3000000000000000000005 /* ManagedSettingsUI.framework */,
 			);
 			name = iOS;
 			sourceTree = "<group>";
@@ -475,6 +513,7 @@
 			);
 			dependencies = (
 				FB1000000000000000000028 /* PBXTargetDependency */,
+				FB3000000000000000000013 /* PBXTargetDependency */,
 			);
 			name = Tempo;
 			productName = Tempo;
@@ -516,6 +555,23 @@
 			productReference = FB100000000000000000000B /* TempoFocusExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		FB300000000000000000000C /* TempoShieldExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FB3000000000000000000011 /* Build configuration list for PBXNativeTarget "TempoShieldExtension" */;
+			buildPhases = (
+				FB300000000000000000000E /* Sources */,
+				FB300000000000000000000A /* Frameworks */,
+				FB300000000000000000000D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TempoShieldExtension;
+			productName = TempoShieldExtension;
+			productReference = FB3000000000000000000004 /* TempoShieldExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -530,6 +586,9 @@
 						CreatedOnToolsVersion = 15.0;
 					};
 					FB1000000000000000000020 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					FB300000000000000000000C = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -550,6 +609,7 @@
 				400000000000000000000001 /* Tempo */,
 				404286255FBC0CE0037EB039 /* TempoTests */,
 				FB1000000000000000000020 /* TempoFocusExtension */,
+				FB300000000000000000000C /* TempoShieldExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -562,6 +622,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				FB100000000000000000001D /* TempoFocusExtension.appex in Embed App Extensions */,
+				FB3000000000000000000009 /* TempoShieldExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -587,6 +648,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		FB1000000000000000000029 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FB300000000000000000000D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -671,6 +739,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FB300000000000000000000E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB3000000000000000000006 /* TempoShieldConfiguration.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -685,6 +761,12 @@
 			name = TempoFocusExtension;
 			target = FB1000000000000000000020 /* TempoFocusExtension */;
 			targetProxy = FB1000000000000000000027 /* PBXContainerItemProxy */;
+		};
+		FB3000000000000000000013 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = TempoShieldExtension;
+			target = FB300000000000000000000C /* TempoShieldExtension */;
+			targetProxy = FB3000000000000000000012 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -953,6 +1035,56 @@
 			};
 			name = Release;
 		};
+		FB300000000000000000000F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TempoShieldExtension/TempoShieldExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KTK23627V8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TempoShieldExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.shieldconfig;
+				PRODUCT_NAME = TempoShieldExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Debug;
+		};
+		FB3000000000000000000010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TempoShieldExtension/TempoShieldExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KTK23627V8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TempoShieldExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.shieldconfig;
+				PRODUCT_NAME = TempoShieldExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -988,6 +1120,15 @@
 			buildConfigurations = (
 				FB1000000000000000000024 /* Debug */,
 				FB1000000000000000000025 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FB3000000000000000000011 /* Build configuration list for PBXNativeTarget "TempoShieldExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FB300000000000000000000F /* Debug */,
+				FB3000000000000000000010 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
