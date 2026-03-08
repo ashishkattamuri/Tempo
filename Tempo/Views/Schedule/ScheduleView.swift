@@ -922,10 +922,10 @@ struct ScheduleView: View {
         item.touch()
         if item.isCompleted {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            // If this was an active focus block task, sync shields immediately
-            if item.isFocusBlock {
-                focusBlockManager.syncShields(for: Array(allItems))
-            }
+        }
+        // Sync shields on both complete and un-complete for focus block tasks
+        if item.isFocusBlock {
+            focusBlockManager.syncShields(for: Array(allItems))
         }
     }
 
