@@ -8,6 +8,7 @@ struct FocusGroupEditView: View {
 
     private let isEditing: Bool
     @State private var group: FocusGroup
+    @State private var showingPicker = false
 
     private let symbolOptions = [
         "moon.circle.fill", "brain.fill", "bolt.circle.fill", "flame.fill",
@@ -55,10 +56,23 @@ struct FocusGroupEditView: View {
             }
 
             Section {
-                FamilyActivityPicker(selection: Binding(
-                    get: { group.selection },
-                    set: { group.selection = $0 }
-                ))
+                Button {
+                    showingPicker = true
+                } label: {
+                    HStack {
+                        Label("Choose Apps & Categories", systemImage: "apps.iphone")
+                        Spacer()
+                        if group.blockedItemCount > 0 {
+                            Text("\(group.blockedItemCount) selected")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .foregroundStyle(.primary)
             } header: {
                 Text("Apps & Categories to Block")
             } footer: {
@@ -68,6 +82,22 @@ struct FocusGroupEditView: View {
         }
         .navigationTitle(isEditing ? "Edit Group" : "New Group")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingPicker) {
+            NavigationStack {
+                FamilyActivityPicker(selection: Binding(
+                    get: { group.selection },
+                    set: { group.selection = $0 }
+                ))
+                .navigationTitle("Choose Apps")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { showingPicker = false }
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }

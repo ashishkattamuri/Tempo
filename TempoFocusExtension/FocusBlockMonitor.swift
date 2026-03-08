@@ -37,15 +37,29 @@ class FocusBlockMonitor: DeviceActivityMonitor {
 
         guard let groupIdStr = activityMapping[activity.rawValue],
               let groupId = UUID(uuidString: groupIdStr),
-              let group = loadGroup(id: groupId) else { return }
+              let group = loadGroup(id: groupId) else {
+            print("FocusBlockMonitor: No group found for activity \(activity.rawValue)")
+            return
+        }
 
         let selection = group.selection
-        // Use token-based API (iOS 16–17); applicationTokens/categoryTokens deprecated in iOS 18
-        if !selection.applicationTokens.isEmpty {
-            store.shield.applications = selection.applicationTokens
+
+        // applicationTokens is the correct type for ManagedSettings.shield.applications.
+        // On iOS 18+, FamilyActivitySelection also exposes .applications (Set<Application>)
+        // but shield.applications still expects Set<ApplicationToken>, so we use .applicationTokens.
+        let appTokens = selection.applicationTokens
+        let catTokens = selection.categoryTokens
+
+        if !appTokens.isEmpty {
+            store.shield.applications = appTokens
+            print("FocusBlockMonitor: Shielding \(appTokens.count) apps")
         }
-        if !selection.categoryTokens.isEmpty {
-            store.shield.applicationCategories = .specific(selection.categoryTokens)
+        if !catTokens.isEmpty {
+            store.shield.applicationCategories = .specific(catTokens)
+            print("FocusBlockMonitor: Shielding \(catTokens.count) categories")
+        }
+        if appTokens.isEmpty && catTokens.isEmpty {
+            print("FocusBlockMonitor: Warning — selection has no tokens. Check FamilyControls authorization.")
         }
     }
 
