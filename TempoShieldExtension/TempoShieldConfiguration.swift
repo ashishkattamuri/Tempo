@@ -2,58 +2,40 @@ import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 
+@objc(TempoShieldConfiguration)
 class TempoShieldConfiguration: ShieldConfigurationDataSource {
-
     private let defaults = UserDefaults(suiteName: "group.com.scheduler.tempo")
-
-    // MARK: - App Shield
+    private let activeTaskTitleKey = "activeShieldTaskTitle"
 
     override func configuration(shielding application: Application) -> ShieldConfiguration {
-        makeConfiguration(for: application.localizedDisplayName)
+        tempoShield()
     }
 
     override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
-        makeConfiguration(for: application.localizedDisplayName)
+        tempoShield()
     }
 
-    // MARK: - Web Domain Shield
-
     override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
-        makeConfiguration(for: webDomain.domain)
+        tempoShield()
     }
 
     override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration {
-        makeConfiguration(for: webDomain.domain)
+        tempoShield()
     }
 
-    // MARK: - Configuration Builder
-
-    private func makeConfiguration(for appName: String?) -> ShieldConfiguration {
-        let taskTitle = defaults?.string(forKey: "activeShieldTaskTitle")
-
+    private func tempoShield() -> ShieldConfiguration {
         let indigo = UIColor(red: 0.35, green: 0.22, blue: 0.80, alpha: 1.0)
-        let softWhite = UIColor.white.withAlphaComponent(0.95)
-        let dimWhite = UIColor.white.withAlphaComponent(0.65)
-
-        let title: String
-        let subtitle: String
-
-        if let taskTitle {
-            title = "You're in focus mode"
-            subtitle = "You set aside this time for \"\(taskTitle)\". Finishing strong feels better than a quick distraction."
+        let taskTitle = defaults?.string(forKey: activeTaskTitleKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let subtitleText = if let taskTitle, !taskTitle.isEmpty {
+            "Return to \(taskTitle). This app is blocked during your focus block."
         } else {
-            title = "Stay in your flow"
-            subtitle = "You blocked this app to protect your focus. You've got this."
+            "Stay focused. This app is blocked during your focus block."
         }
-
-        let icon = UIImage(systemName: "timer",
-                          withConfiguration: UIImage.SymbolConfiguration(pointSize: 48, weight: .medium))
 
         return ShieldConfiguration(
             backgroundColor: indigo,
-            icon: icon?.withTintColor(.white, renderingMode: .alwaysOriginal),
-            title: ShieldConfiguration.Label(text: title, color: softWhite),
-            subtitle: ShieldConfiguration.Label(text: subtitle, color: dimWhite),
+            title: ShieldConfiguration.Label(text: "You're in focus mode", color: .white),
+            subtitle: ShieldConfiguration.Label(text: subtitleText, color: UIColor.white.withAlphaComponent(0.75)),
             primaryButtonLabel: ShieldConfiguration.Label(text: "I really need this", color: indigo),
             primaryButtonBackgroundColor: .white
         )
