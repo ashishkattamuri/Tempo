@@ -17,6 +17,10 @@ final class FocusBlockManager: ObservableObject {
     private let groupsKey = "focusGroups"
     private let activityMappingKey = "focusActivityMapping"
     private let activeTaskTitleKey = "activeShieldTaskTitle"
+    private let shieldExtensionInitTimestampKey = "shieldExtension.initTimestamp"
+    private let shieldExtensionLastInvocationTimestampKey = "shieldExtension.lastInvocationTimestamp"
+    private let shieldExtensionLastInvocationKindKey = "shieldExtension.lastInvocationKind"
+    private let shieldExtensionLastInvocationTargetKey = "shieldExtension.lastInvocationTarget"
     private let store = ManagedSettingsStore()
 
     init() {
@@ -155,11 +159,13 @@ final class FocusBlockManager: ObservableObject {
         }
         // Store task title so the shield extension can show personalised copy
         defaults.set(taskTitle, forKey: activeTaskTitleKey)
+        logShieldExtensionDiagnostics(context: "applyShields")
     }
 
     func clearShields() {
         store.clearAllSettings()
         defaults.removeObject(forKey: activeTaskTitleKey)
+        logShieldExtensionDiagnostics(context: "clearShields")
         print("FocusBlockManager: Cleared all shields")
     }
 
@@ -182,6 +188,8 @@ final class FocusBlockManager: ObservableObject {
             print("FocusBlockManager: No active focus task — clearing shields")
             clearShields()
         }
+
+        logShieldExtensionDiagnostics(context: "syncShields")
     }
 
     // MARK: - Notifications
@@ -193,5 +201,23 @@ final class FocusBlockManager: ObservableObject {
 
     func cancelNotifications(for task: ScheduleItem) {
         NotificationService.shared.cancelFocusNotifications(for: task)
+    }
+
+    private func logShieldExtensionDiagnostics(context: String) {
+        let initTime = defaults.double(forKey: shieldExtensionInitTimestampKey)
+        let invokeTime = defaults.double(forKey: shieldExtensionLastInvocationTimestampKey)
+        let invokeKind = defaults.string(forKey: shieldExtensionLastInvocationKindKey) ?? "none"
+        let invokeTarget = defaults.string(forKey: shieldExtensionLastInvocationTargetKey) ?? "none"
+
+        let initSummary = initTime > 0 ? Date(timeIntervalSince1970: initTime).description : "never"
+        let invokeSummary = invokeTime > 0 ? Date(timeIntervalSince1970: invokeTime).description : "never"
+
+        print(
+            """
+            FocusBlockManager[\(context)]: shield extension diagnostics \
+            init=\(initSummary) lastInvocation=\(invokeSummary) \
+            kind=\(invokeKind) target=\(invokeTarget)
+            """
+        )
     }
 }
