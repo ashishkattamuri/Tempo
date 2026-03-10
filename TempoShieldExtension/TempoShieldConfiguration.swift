@@ -2,60 +2,69 @@ import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 
-class TempoShieldConfiguration: ShieldConfigurationDataSource {
-
+final class TempoShieldConfiguration: ShieldConfigurationDataSource {
     private let defaults = UserDefaults(suiteName: "group.com.scheduler.tempo")
+    private let activeTaskTitleKey = "activeShieldTaskTitle"
+    private let initTimestampKey = "shieldExtension.initTimestamp"
+    private let lastInvocationTimestampKey = "shieldExtension.lastInvocationTimestamp"
+    private let lastInvocationKindKey = "shieldExtension.lastInvocationKind"
+    private let lastInvocationTargetKey = "shieldExtension.lastInvocationTarget"
 
-    // MARK: - App Shield
+    override init() {
+        super.init()
+        defaults?.set(Date().timeIntervalSince1970, forKey: initTimestampKey)
+        defaults?.set("initialized", forKey: lastInvocationKindKey)
+    }
 
     override func configuration(shielding application: Application) -> ShieldConfiguration {
-        makeConfiguration(for: application.localizedDisplayName)
+        recordInvocation(kind: "application", target: application.localizedDisplayName)
+        return tempoShield(appName: application.localizedDisplayName)
     }
 
     override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
-        makeConfiguration(for: application.localizedDisplayName)
+        recordInvocation(kind: "application-category", target: application.localizedDisplayName)
+        return tempoShield(appName: application.localizedDisplayName)
     }
 
-    // MARK: - Web Domain Shield
-
     override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
-        makeConfiguration(for: webDomain.domain)
+        recordInvocation(kind: "webDomain", target: webDomain.domain)
+        return tempoShield(appName: webDomain.domain)
     }
 
     override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration {
-        makeConfiguration(for: webDomain.domain)
+        recordInvocation(kind: "webDomain-category", target: webDomain.domain)
+        return tempoShield(appName: webDomain.domain)
     }
 
-    // MARK: - Configuration Builder
-
-    private func makeConfiguration(for appName: String?) -> ShieldConfiguration {
-        let taskTitle = defaults?.string(forKey: "activeShieldTaskTitle")
-
+    private func tempoShield(appName: String?) -> ShieldConfiguration {
         let indigo = UIColor(red: 0.35, green: 0.22, blue: 0.80, alpha: 1.0)
-        let softWhite = UIColor.white.withAlphaComponent(0.95)
-        let dimWhite = UIColor.white.withAlphaComponent(0.65)
+        let taskTitle = defaults?.string(forKey: activeTaskTitleKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let title: String
+        let title = "You're in the zone 🎯"
+
         let subtitle: String
-
-        if let taskTitle {
-            title = "You're in focus mode"
-            subtitle = "You set aside this time for \"\(taskTitle)\". Finishing strong feels better than a quick distraction."
+        if let app = appName, let task = taskTitle, !task.isEmpty {
+            subtitle = "\(app) is blocked until \"\(task)\" is done. You scheduled this time — honour it."
+        } else if let task = taskTitle, !task.isEmpty {
+            subtitle = "This app is blocked until \"\(task)\" is done. One focused session at a time."
+        } else if let app = appName {
+            subtitle = "\(app) is blocked during your focus session. Stay the course — you've got this."
         } else {
-            title = "Stay in your flow"
-            subtitle = "You blocked this app to protect your focus. You've got this."
+            subtitle = "This app is blocked during your focus session. Stay the course — you've got this."
         }
-
-        let icon = UIImage(systemName: "timer",
-                          withConfiguration: UIImage.SymbolConfiguration(pointSize: 48, weight: .medium))
 
         return ShieldConfiguration(
             backgroundColor: indigo,
-            icon: icon?.withTintColor(.white, renderingMode: .alwaysOriginal),
-            title: ShieldConfiguration.Label(text: title, color: softWhite),
-            subtitle: ShieldConfiguration.Label(text: subtitle, color: dimWhite),
-            primaryButtonLabel: ShieldConfiguration.Label(text: "I really need this", color: indigo),
+            title: ShieldConfiguration.Label(text: title, color: .white),
+            subtitle: ShieldConfiguration.Label(text: subtitle, color: UIColor.white.withAlphaComponent(0.80)),
+            primaryButtonLabel: ShieldConfiguration.Label(text: "Back to focus", color: indigo),
             primaryButtonBackgroundColor: .white
         )
+    }
+
+    private func recordInvocation(kind: String, target: String?) {
+        defaults?.set(Date().timeIntervalSince1970, forKey: lastInvocationTimestampKey)
+        defaults?.set(kind, forKey: lastInvocationKindKey)
+        defaults?.set(target, forKey: lastInvocationTargetKey)
     }
 }

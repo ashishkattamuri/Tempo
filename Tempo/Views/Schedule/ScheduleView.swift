@@ -186,6 +186,13 @@ struct ScheduleView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 focusBlockManager.syncShields(for: Array(allItems))
+                // Shield extension diagnostic
+                if let ud = UserDefaults(suiteName: "group.com.scheduler.tempo") {
+                    let initTs = ud.double(forKey: "shieldExtension.initTimestamp")
+                    let invokeKind = ud.string(forKey: "shieldExtension.lastInvocationKind") ?? "never"
+                    let invokeTarget = ud.string(forKey: "shieldExtension.lastInvocationTarget") ?? "-"
+                    print("🛡️ Shield ext init: \(initTs > 0 ? "YES" : "NO") | last: \(invokeKind) | target: \(invokeTarget)")
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
