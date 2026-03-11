@@ -9,6 +9,8 @@ struct ConflictResolutionData: Identifiable {
 
 /// Main daily schedule view - Structured-inspired timeline design.
 struct ScheduleView: View {
+
+    @State private var showingExportPreview = false
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var sleepManager: SleepManager
@@ -206,16 +208,25 @@ struct ScheduleView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
+                // Export / share button
+                Button(action: {
+                    showingExportPreview = true
+                }) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: {
                     selectedSlotTime = nil
                     onAddTask()
                 }) {
                    Image(systemName: "plus")
-    .font(.title3)
-    .foregroundStyle(.white)
-    .frame(width: 32, height: 32)
-    .background(Color.accentColor)
-    .clipShape(Circle())
+                    .font(.title3)
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color.accentColor)
+                    .clipShape(Circle())
                 }
             }
         }
@@ -305,6 +316,15 @@ struct ScheduleView: View {
             .presentationDetents([.height(280)])
             .presentationDragIndicator(.visible)
         }
+        // Export preview sheet
+        .sheet(isPresented: $showingExportPreview) {
+            ScheduleSharePreviewSheet(
+                date: selectedDate,
+                items: itemsForSelectedDate
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Week Calendar Header
@@ -319,7 +339,7 @@ struct ScheduleView: View {
                 Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.year()))
                     .font(.title2)
                     .fontWeight(.bold)
-.foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.accentColor)
 
                 Spacer()
 
@@ -1489,7 +1509,7 @@ struct ConflictResolutionSheet: View {
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(16)
-       .shadow(color: Color.primary.opacity(0.08), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.primary.opacity(0.08), radius: 8, x: 0, y: 2)
     }
 }
 
