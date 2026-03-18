@@ -13,10 +13,10 @@ enum TaskCategory: String, Codable, CaseIterable, Identifiable {
     /// Human-readable display name
     var displayName: String {
         switch self {
-        case .nonNegotiable: return "Non-Negotiable"
-        case .identityHabit: return "Identity Habit"
-        case .flexibleTask: return "Flexible Task"
-        case .optionalGoal: return "Optional Goal"
+        case .nonNegotiable: return "Event"
+        case .identityHabit: return "Habit"
+        case .flexibleTask: return "Task"
+        case .optionalGoal: return "Goal"
         }
     }
 
@@ -37,10 +37,10 @@ enum TaskCategory: String, Codable, CaseIterable, Identifiable {
     /// Primary color for visual identification
     var color: Color {
         switch self {
-        case .nonNegotiable: return .red
-        case .identityHabit: return .purple
-        case .flexibleTask: return .blue
-        case .optionalGoal: return .green
+        case .nonNegotiable: return Color(red: 0.82, green: 0.30, blue: 0.34) // muted rose
+        case .identityHabit: return Color(red: 0.54, green: 0.35, blue: 0.74) // soft violet
+        case .flexibleTask:  return Color(red: 0.24, green: 0.52, blue: 0.82) // cornflower blue
+        case .optionalGoal:  return Color(red: 0.20, green: 0.65, blue: 0.48) // sage green
         }
     }
 
