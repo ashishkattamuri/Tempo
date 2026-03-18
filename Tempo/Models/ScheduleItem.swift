@@ -77,6 +77,12 @@ final class ScheduleItem {
     /// UUID string of the selected FocusGroup; nil means no focus block
     var focusGroupIdRaw: String?
 
+    /// Links to a HabitDefinition library entry (nil = ad-hoc habit or non-habit)
+    var habitDefinitionId: UUID?
+
+    /// Links to a GoalDefinition library entry (nil = ad-hoc goal or non-goal)
+    var goalDefinitionId: UUID?
+
     /// Creation timestamp
     var createdAt: Date
 
@@ -87,10 +93,14 @@ final class ScheduleItem {
 
     var category: TaskCategory {
         get {
-            TaskCategory(rawValue: categoryRawValue) ?? .flexibleTask
+            if habitDefinitionId != nil { return .identityHabit }
+            if goalDefinitionId != nil  { return .optionalGoal }
+            return TaskCategory(rawValue: categoryRawValue) ?? .flexibleTask
         }
         set {
-            categoryRawValue = newValue.rawValue
+            if habitDefinitionId == nil && goalDefinitionId == nil {
+                categoryRawValue = newValue.rawValue
+            }
         }
     }
 
@@ -203,7 +213,9 @@ final class ScheduleItem {
         compensationDebtMinutes: Int = 0,
         isCompensationTask: Bool = false,
         originalTaskId: UUID? = nil,
-        focusGroupIdRaw: String? = nil
+        focusGroupIdRaw: String? = nil,
+        habitDefinitionId: UUID? = nil,
+        goalDefinitionId: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -227,6 +239,8 @@ final class ScheduleItem {
         self.isCompensationTask = isCompensationTask
         self.originalTaskId = originalTaskId
         self.focusGroupIdRaw = focusGroupIdRaw
+        self.habitDefinitionId = habitDefinitionId
+        self.goalDefinitionId = goalDefinitionId
         self.createdAt = Date()
         self.updatedAt = Date()
     }

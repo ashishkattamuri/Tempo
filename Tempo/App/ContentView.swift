@@ -5,7 +5,7 @@ import os.log
 private let conflictLog = OSLog(subsystem: "com.tempo.app", category: "ConflictResolution")
 
 /// Root navigation view for the Tempo app.
-/// Manages navigation between schedule view and other screens.
+/// Uses a 4-tab layout: Today · Library · Insights · Settings.
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var sleepManager: SleepManager
@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingCompensation = false
     @State private var editingItem: ScheduleItem?
+    @State private var selectedTab: Int = 0
 
     // Conflict detection state
     @State private var pendingConflictCheck: ScheduleItem?
@@ -33,136 +34,143 @@ struct ContentView: View {
     @State private var reshuffleEngine = ReshuffleEngine()
 
     var body: some View {
-        NavigationStack {
-            ScheduleView(
-                selectedDate: $selectedDate,
-                onAddTask: {
-                    editingItem = nil
-                    showingTaskEdit = true
+        TabView(selection: $selectedTab) {
+            // MARK: Tab 1 — Today
+            NavigationStack {
+                ScheduleView(
+                    selectedDate: $selectedDate,
+                    onAddTask: {
+                        editingItem = nil
+                        showingTaskEdit = true
+                    },
+                    onEditTask: { item in
+                        editingItem = item
+                        showingTaskEdit = true
+                    },
+                    onReshuffle: {
+                        showingReshuffle = true
+                    }
+                )
+            }
+            .tabItem {
+                Label("Today", systemImage: "calendar")
+            }
+            .tag(0)
+
+            // MARK: Tab 2 — Library
+            LibraryView()
+                .tabItem {
+                    Label("Library", systemImage: "books.vertical.fill")
+                }
+                .tag(1)
+
+            // MARK: Tab 3 — Insights
+            InsightsTabView()
+                .tabItem {
+                    Label("Insights", systemImage: "chart.bar.fill")
+                }
+                .tag(2)
+
+            // MARK: Tab 4 — Settings
+            NavigationStack {
+                SettingsMenuView(
+                    sleepManager: sleepManager,
+                    compensationTracker: compensationTracker,
+                    onDismiss: {}
+                )
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape.fill")
+            }
+            .tag(3)
+        }
+        .sheet(isPresented: $showingTaskEdit) {
+            TaskEditView(
+                item: editingItem,
+                selectedDate: selectedDate,
+                onSave: { newItem in
+                    pendingConflictCheck = newItem
+                    showingTaskEdit = false
                 },
-                onEditTask: { item in
-                    editingItem = item
-                    showingTaskEdit = true
-                },
-                onReshuffle: {
-                    showingReshuffle = true
-                },
-                onSettings: {
-                    showingSettings = true
+                onCancel: {
+                    showingTaskEdit = false
                 }
             )
-            .sheet(isPresented: $showingTaskEdit) {
-                TaskEditView(
-                    item: editingItem,
-                    selectedDate: selectedDate,
-                    onSave: { newItem in
-                        pendingConflictCheck = newItem
-                        showingTaskEdit = false
-                    },
-                    onCancel: {
-                        showingTaskEdit = false
-                    }
-                )
-            }
-            .onChange(of: showingTaskEdit) { _, isShowing in
-                if !isShowing, let newItem = pendingConflictCheck {
-                    pendingConflictCheck = nil
-                    // Delay to allow sheet dismiss animation
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        checkForConflicts(newItem: newItem)
-                    }
+        }
+        .onChange(of: showingTaskEdit) { _, isShowing in
+            if !isShowing, let newItem = pendingConflictCheck {
+                pendingConflictCheck = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    checkForConflicts(newItem: newItem)
                 }
-            }
-            .sheet(isPresented: $showingConflictResolution) {
-                if !conflictResolutions.isEmpty {
-                    ConflictResolutionSheet(
-                        resolutions: conflictResolutions,
-                        onResolve: { resolution, action in
-                            applyResolution(resolution, action: action)
-                        },
-                        onDismiss: {
-                            showingConflictResolution = false
-                            conflictResolutions = []
-                        }
-                    )
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                }
-            }
-            .sheet(isPresented: $showingSleepOverlap) {
-                if let item = sleepOverlapItem {
-                    SleepOverlapSheet(
-                        item: item,
-                        earlierTime: sleepEarlierSuggestion,
-                        nextAvailableTime: sleepNextSlotSuggestion,
-                        onMoveEarlier: {
-                            if let newTime = sleepEarlierSuggestion {
-                                applySleepSuggestion(to: item, newStartTime: newTime)
-                            }
-                            showingSleepOverlap = false
-                        },
-                        onMoveToNextSlot: {
-                            if let newTime = sleepNextSlotSuggestion {
-                                applySleepSuggestion(to: item, newStartTime: newTime)
-                            }
-                            showingSleepOverlap = false
-                        },
-                        onKeep: {
-                            showingSleepOverlap = false
-                        }
-                    )
-                    .presentationDetents([.height(320)])
-                    .presentationDragIndicator(.visible)
-                }
-            }
-            .sheet(isPresented: $showingReshuffle) {
-                ReshuffleProposalView(
-                    selectedDate: selectedDate,
-                    onApply: {
-                        showingReshuffle = false
-                    },
-                    onCancel: {
-                        showingReshuffle = false
-                    }
-                )
-            }
-            .sheet(isPresented: $showingSettings) {
-                NavigationStack {
-                    SettingsMenuView(
-                        sleepManager: sleepManager,
-                        compensationTracker: compensationTracker,
-                        onDismiss: { showingSettings = false }
-                    )
-                }
-            }
-            .sheet(isPresented: $showingCompensation) {
-                CompensationView(compensationTracker: compensationTracker)
-            }
-            .onAppear {
-                // Wire up the sleep manager to the reshuffle engine
-                reshuffleEngine.sleepManager = sleepManager
             }
         }
-    }
-
-    // MARK: - Settings Access
-
-    /// Presents the settings view - can be triggered from ScheduleView
-    func showSettingsView() {
-        showingSettings = true
+        .sheet(isPresented: $showingConflictResolution) {
+            if !conflictResolutions.isEmpty {
+                ConflictResolutionSheet(
+                    resolutions: conflictResolutions,
+                    onResolve: { resolution, action in
+                        applyResolution(resolution, action: action)
+                    },
+                    onDismiss: {
+                        showingConflictResolution = false
+                        conflictResolutions = []
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $showingSleepOverlap) {
+            if let item = sleepOverlapItem {
+                SleepOverlapSheet(
+                    item: item,
+                    earlierTime: sleepEarlierSuggestion,
+                    nextAvailableTime: sleepNextSlotSuggestion,
+                    onMoveEarlier: {
+                        if let newTime = sleepEarlierSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        showingSleepOverlap = false
+                    },
+                    onMoveToNextSlot: {
+                        if let newTime = sleepNextSlotSuggestion {
+                            applySleepSuggestion(to: item, newStartTime: newTime)
+                        }
+                        showingSleepOverlap = false
+                    },
+                    onKeep: {
+                        showingSleepOverlap = false
+                    }
+                )
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $showingReshuffle) {
+            ReshuffleProposalView(
+                selectedDate: selectedDate,
+                onApply: { showingReshuffle = false },
+                onCancel: { showingReshuffle = false }
+            )
+        }
+        .sheet(isPresented: $showingCompensation) {
+            CompensationView(compensationTracker: compensationTracker)
+        }
+        .onAppear {
+            reshuffleEngine.sleepManager = sleepManager
+        }
     }
 
     // MARK: - Conflict Detection
 
     private func checkForConflicts(newItem: ScheduleItem) {
-        // Get items for the same day as the new item, excluding the new item itself
         let existingItems = allItems.filter { item in
             item.id != newItem.id &&
             item.scheduledDate.isSameDay(as: newItem.scheduledDate) &&
             !item.isCompleted
         }
 
-        // Find overlapping items
         let conflicts = existingItems.filter { existing in
             newItem.overlaps(with: existing)
         }
@@ -178,31 +186,24 @@ struct ContentView: View {
             return
         }
 
-        // No task conflict — check for sleep overlap
         checkForSleepOverlap(newItem: newItem)
     }
 
     private func checkForSleepOverlap(newItem: ScheduleItem) {
         guard sleepManager.isEnabled else { return }
         guard sleepManager.doesRangeOverlapSleep(start: newItem.startTime, end: newItem.endTime) else { return }
-
         guard let range = sleepManager.getSleepBlockedRange(for: newItem.scheduledDate) else { return }
 
-        // Suggest moving earlier: end the task right at buffer start
         let earlierStart = range.bufferStart.addingTimeInterval(-Double(newItem.durationMinutes * 60))
         let calendar = Calendar.current
         let dayStart = calendar.date(bySettingHour: 5, minute: 0, second: 0, of: newItem.scheduledDate) ?? newItem.scheduledDate
-        // Only suggest earlier if it's still in the future and after the day start
         sleepEarlierSuggestion = (earlierStart >= dayStart && earlierStart > Date()) ? earlierStart : nil
-
-        // Suggest moving to first free slot after wake time
         sleepNextSlotSuggestion = findFirstFreeSlotAfterWake(wakeTime: range.wakeTime, durationMinutes: newItem.durationMinutes)
 
         sleepOverlapItem = newItem
         showingSleepOverlap = true
     }
 
-    /// Returns the first start time after `wakeTime` where `durationMinutes` fit without overlapping existing items.
     private func findFirstFreeSlotAfterWake(wakeTime: Date, durationMinutes: Int) -> Date {
         let wakeDay = Calendar.current.startOfDay(for: wakeTime)
         let duration = TimeInterval(durationMinutes * 60)
@@ -230,33 +231,27 @@ struct ContentView: View {
     private func applyResolution(_ resolution: ConflictResolution, action: ConflictAction) {
         switch action {
         case .moveConflicting(let newTime):
-            // Find and move the conflicting item
             if let conflictingItem = allItems.first(where: { $0.id == resolution.conflictingItem.id }) {
                 conflictingItem.startTime = newTime
-                // CRITICAL: Also update scheduledDate if moving to a different day
                 conflictingItem.scheduledDate = Calendar.current.startOfDay(for: newTime)
                 conflictingItem.touch()
                 try? modelContext.save()
             }
 
         case .moveNew(let newTime):
-            // Move the new item - this resolves ALL conflicts at once
             if let newItemId = savedItem?.id,
                let newItem = allItems.first(where: { $0.id == newItemId }) {
                 newItem.startTime = newTime
-                // CRITICAL: Also update scheduledDate if moving to a different day
                 newItem.scheduledDate = Calendar.current.startOfDay(for: newTime)
                 newItem.touch()
                 try? modelContext.save()
             }
-            // Clear ALL resolutions and dismiss since moving the new item fixes everything
             conflictResolutions.removeAll()
             showingConflictResolution = false
             savedItem = nil
             return
 
         case .keepBoth:
-            // Just skip this conflict
             break
 
         case .deleteConflicting:
@@ -266,7 +261,6 @@ struct ContentView: View {
             }
         }
 
-        // Recalculate remaining conflicts with updated schedule
         recalculateRemainingConflicts(excludingResolved: resolution)
     }
 
@@ -279,15 +273,11 @@ struct ContentView: View {
             return
         }
 
-        // Fetch fresh items from the model context to get the latest state
         let freshItems = fetchFreshItems(for: actualNewItem.scheduledDate)
-
-        // Get remaining conflicting item IDs (exclude the one we just resolved)
         let remainingConflictIds = conflictResolutions
             .filter { $0.id != resolved.id }
             .map { $0.conflictingItem.id }
 
-        // Check which items still actually conflict with the new item (using fresh data)
         let stillConflicting = freshItems.filter { item in
             remainingConflictIds.contains(item.id) &&
             !item.isCompleted &&
@@ -295,12 +285,10 @@ struct ContentView: View {
         }
 
         if stillConflicting.isEmpty {
-            // No more conflicts - we're done
             conflictResolutions.removeAll()
             showingConflictResolution = false
             savedItem = nil
         } else {
-            // Recalculate resolutions with fresh slot suggestions using fresh items
             conflictResolutions = reshuffleEngine.suggestResolution(
                 newItem: actualNewItem,
                 conflictingItems: stillConflicting,
@@ -310,7 +298,6 @@ struct ContentView: View {
     }
 
     private func fetchFreshItems(for date: Date) -> [ScheduleItem] {
-        // Fetch items for a week to ensure we see moved items on future days
         let startOfDay = date.startOfDay
         let endOfWeek = Calendar.current.date(byAdding: .day, value: 7, to: date)?.endOfDay ?? date.endOfDay
 
@@ -323,21 +310,9 @@ struct ContentView: View {
             sortBy: [SortDescriptor(\.startTime)]
         )
 
-        let timeFormatter: DateFormatter = {
-            let f = DateFormatter()
-            f.dateFormat = "h:mm a"
-            return f
-        }()
-
         do {
-            let items = try modelContext.fetch(descriptor)
-            os_log("Fetched %d items for date", log: conflictLog, type: .debug, items.count)
-            for item in items {
-                os_log("  - %{public}@ [%{public}@]: %{public}@ - %{public}@ (completed: %d)", log: conflictLog, type: .debug, item.title, item.category.displayName, timeFormatter.string(from: item.startTime), timeFormatter.string(from: item.endTime), item.isCompleted ? 1 : 0)
-            }
-            return items
+            return try modelContext.fetch(descriptor)
         } catch {
-            os_log("Error fetching, using allItems fallback", log: conflictLog, type: .error)
             return Array(allItems.filter { $0.scheduledDate.isSameDay(as: date) })
         }
     }
@@ -345,7 +320,7 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: ScheduleItem.self, inMemory: true)
+        .modelContainer(for: [ScheduleItem.self, HabitDefinition.self, GoalDefinition.self], inMemory: true)
         .environmentObject(SleepManager())
         .environmentObject(CompensationTracker())
         .environmentObject(FocusBlockManager())

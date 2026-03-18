@@ -21,6 +21,8 @@ struct TempoApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             ScheduleItem.self,
+            HabitDefinition.self,
+            GoalDefinition.self,
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,

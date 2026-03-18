@@ -6,6 +6,8 @@ struct TaskEditView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var focusBlockManager: FocusBlockManager
+    @Query(sort: \HabitDefinition.createdAt) private var habitDefinitions: [HabitDefinition]
+    @Query(sort: \GoalDefinition.createdAt) private var goalDefinitions: [GoalDefinition]
 
     let item: ScheduleItem?
     let selectedDate: Date
@@ -14,20 +16,25 @@ struct TaskEditView: View {
     let onCancel: () -> Void
 
     @State private var title: String = ""
-    @State private var category: TaskCategory = .flexibleTask
+    @State private var selectedType: ScheduleItemType = .task
     @State private var startTime: Date = Date()
     @State private var durationMinutes: Int = 30
     @State private var minimumDurationMinutes: Int? = nil
     @State private var notes: String = ""
     @State private var isEveningTask: Bool = false
     @State private var isGentleTask: Bool = false
-    @State private var selectedColor: Color = .blue
 
     @State private var showingDeleteConfirmation = false
     @State private var showingDatePicker = false
     @State private var scheduledDate: Date = Date()
     @State private var hasInitialized = false
     @State private var showingRecurringEditScope = false
+
+    // Library selection
+    @State private var selectedHabitDef: HabitDefinition? = nil
+    @State private var selectedGoalDef: GoalDefinition? = nil
+    @State private var showingHabitPicker = false
+    @State private var showingGoalPicker = false
 
     // Recurrence state
     @State private var isRecurring: Bool = false
@@ -36,6 +43,8 @@ struct TaskEditView: View {
 
     // Focus Block state
     @State private var focusGroupId: UUID? = nil
+
+    private var category: TaskCategory { selectedType.taskCategory }
 
     /// Computed frequency based on selected days (7 days = daily, otherwise weekly)
     private var frequency: RecurrenceFrequency {
@@ -56,8 +65,13 @@ struct TaskEditView: View {
                     // Task name with icon
                     taskNameSection
 
-                    // Category (moved up for quick access)
-                    categorySection
+                    // Type picker: Event | Task | Habit | Goal
+                    typePickerSection
+
+                    // Optional library picker row (Habit or Goal only)
+                    if selectedType == .habit || selectedType == .goal {
+                        libraryPickerRow
+                    }
 
                     // When (time picker)
                     whenSection
@@ -70,8 +84,8 @@ struct TaskEditView: View {
                         recurrenceSection
                     }
 
-                    // Identity habit settings
-                    if category == .identityHabit {
+                    // Habit compression settings (habits only)
+                    if selectedType == .habit {
                         identityHabitSection
                     }
 
@@ -106,9 +120,6 @@ struct TaskEditView: View {
                 saveButton
             }
             .onAppear(perform: loadExistingItem)
-            .onChange(of: category) { _, newValue in
-                selectedColor = newValue.color
-            }
             .confirmationDialog(
                 "Delete this task?",
                 isPresented: $showingDeleteConfirmation,
@@ -134,6 +145,35 @@ struct TaskEditView: View {
                 .presentationDetents([.height(260)])
                 .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: $showingHabitPicker) {
+                HabitPickerSheet(
+                    habits: habitDefinitions,
+                    onSelect: { habit in
+                        selectedHabitDef = habit
+                        title = habit.name
+                        durationMinutes = habit.defaultDurationMinutes
+                        minimumDurationMinutes = habit.minimumDurationMinutes
+                        showingHabitPicker = false
+                    },
+                    onCancel: { showingHabitPicker = false }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showingGoalPicker) {
+                GoalPickerSheet(
+                    goals: goalDefinitions,
+                    onSelect: { goal in
+                        selectedGoalDef = goal
+                        title = goal.name
+                        durationMinutes = goal.defaultDurationMinutes
+                        showingGoalPicker = false
+                    },
+                    onCancel: { showingGoalPicker = false }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 
@@ -141,15 +181,15 @@ struct TaskEditView: View {
 
     private var taskNameSection: some View {
         HStack(spacing: 12) {
-            // Category icon
+            // Type icon
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(category.color.opacity(0.2))
+                    .fill(selectedType.color.opacity(0.2))
                     .frame(width: 50, height: 50)
 
-                Image(systemName: category.iconName)
+                Image(systemName: selectedType.iconName)
                     .font(.title2)
-                    .foregroundStyle(category.color)
+                    .foregroundStyle(selectedType.color)
             }
 
             TextField("Task name", text: $title)
@@ -246,7 +286,7 @@ struct TaskEditView: View {
                     in: 5...480,
                     step: 5
                 )
-                .tint(category.color)
+                .tint(selectedType.color)
 
                 HStack {
                     Text("5m")
@@ -283,56 +323,155 @@ struct TaskEditView: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(isSelected ? category.color : Color(.systemGray5))
+                        .fill(isSelected ? selectedType.color : Color(.systemGray5))
                 )
         }
         .buttonStyle(.plain)
     }
 
-    private var categorySection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            NavigationLink {
-                CategoryPickerScreen(selection: $category)
-            } label: {
-                HStack(spacing: 12) {
-                    Text("Category")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+    private var typePickerSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("What kind of block?")
+                .font(.headline)
 
-                    Spacer()
-
-                    // Selected category badge
-                    HStack(spacing: 8) {
-                        ZStack {
-                            Circle()
-                                .fill(category.color.opacity(0.2))
-                                .frame(width: 28, height: 28)
-
-                            Image(systemName: category.iconName)
-                                .font(.system(size: 12))
-                                .foregroundStyle(category.color)
+            HStack(spacing: 8) {
+                ForEach(ScheduleItemType.allCases) { type in
+                    Button(action: {
+                        selectedType = type
+                        // Clear library selections when switching type
+                        if type != .habit { selectedHabitDef = nil }
+                        if type != .goal  { selectedGoalDef = nil }
+                    }) {
+                        VStack(spacing: 6) {
+                            Image(systemName: type.iconName)
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(selectedType == type ? .white : type.color)
+                            Text(type.displayName)
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundStyle(selectedType == type ? .white : .primary)
                         }
-
-                        Text(category.displayName)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(selectedType == type ? type.color : Color(.systemGray6))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(selectedType == type ? type.color : Color.clear, lineWidth: 1.5)
+                        )
                     }
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .buttonStyle(.plain)
                 }
             }
         }
         .padding()
-       .background(
-    RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .fill(Color(.secondarySystemBackground))
-)
-.overlay(
-    RoundedRectangle(cornerRadius: 16)
-        .stroke(Color(.separator), lineWidth: 0.5)
-)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.separator), lineWidth: 0.5)
+        )
+    }
+
+    @ViewBuilder
+    private var libraryPickerRow: some View {
+        if selectedType == .habit {
+            Button(action: { showingHabitPicker = true }) {
+                HStack(spacing: 12) {
+                    Image(systemName: "books.vertical.fill")
+                        .foregroundStyle(.purple)
+                        .frame(width: 28)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Use from Library")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                        if let habit = selectedHabitDef {
+                            Text(habit.name + " · \(habit.defaultDurationMinutes) min")
+                                .font(.caption)
+                                .foregroundStyle(.purple)
+                        } else {
+                            Text("Optionally pick a saved habit")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if selectedHabitDef != nil {
+                        Button(action: {
+                            selectedHabitDef = nil
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(selectedHabitDef != nil ? Color.purple.opacity(0.4) : Color(.separator), lineWidth: selectedHabitDef != nil ? 1.5 : 0.5)
+                )
+            }
+            .buttonStyle(.plain)
+        } else if selectedType == .goal {
+            Button(action: { showingGoalPicker = true }) {
+                HStack(spacing: 12) {
+                    Image(systemName: "books.vertical.fill")
+                        .foregroundStyle(.green)
+                        .frame(width: 28)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Use from Library")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                        if let goal = selectedGoalDef {
+                            Text(goal.name + " · \(goal.defaultDurationMinutes) min")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("Optionally pick a saved goal")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if selectedGoalDef != nil {
+                        Button(action: {
+                            selectedGoalDef = nil
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(selectedGoalDef != nil ? Color.green.opacity(0.4) : Color(.separator), lineWidth: selectedGoalDef != nil ? 1.5 : 0.5)
+                )
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private var recurrenceSection: some View {
@@ -513,20 +652,26 @@ struct TaskEditView: View {
 
         if let item = item {
             title = item.title
-            category = item.category
+            selectedType = ScheduleItemType(from: item.category)
             startTime = item.startTime
             durationMinutes = item.durationMinutes
             minimumDurationMinutes = item.minimumDurationMinutes
             notes = item.notes ?? ""
             isEveningTask = item.isEveningTask
             isGentleTask = item.isGentleTask
-            selectedColor = item.category.color
             scheduledDate = item.scheduledDate
             isRecurring = item.isRecurring
             recurrenceDays = item.recurrenceDays
             recurrenceEndDate = item.recurrenceEndDate
             if let raw = item.focusGroupIdRaw {
                 focusGroupId = UUID(uuidString: raw)
+            }
+            // Restore library selection references
+            if let habId = item.habitDefinitionId {
+                selectedHabitDef = habitDefinitions.first(where: { $0.id == habId })
+            }
+            if let goalId = item.goalDefinitionId {
+                selectedGoalDef = goalDefinitions.first(where: { $0.id == goalId })
             }
         } else if let defaultTime = defaultStartTime {
             startTime = defaultTime
@@ -579,6 +724,8 @@ struct TaskEditView: View {
             )
 
             newItem.focusGroupIdRaw = focusGroupId?.uuidString
+            newItem.habitDefinitionId = selectedHabitDef?.id
+            newItem.goalDefinitionId = selectedGoalDef?.id
             modelContext.insert(newItem)
 
             if isRecurring && !recurrenceDays.isEmpty {
@@ -611,6 +758,10 @@ struct TaskEditView: View {
         target.timesPerWeek = frequency == .weekly ? recurrenceDays.count : nil
         target.recurrenceDays = recurrenceDays
         target.recurrenceEndDate = recurrenceEndDate
+
+        // Update definition IDs
+        target.habitDefinitionId = selectedHabitDef?.id
+        target.goalDefinitionId = selectedGoalDef?.id
 
         // Handle focus block changes
         let previousGroupId = target.focusGroupIdRaw
@@ -785,49 +936,190 @@ struct CategoryPickerScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selection: TaskCategory
 
+    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
     var body: some View {
-        List {
-            ForEach(TaskCategory.allCases) { category in
-                Button(action: {
-                    selection = category
-                    dismiss()
-                }) {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(category.color.opacity(0.2))
-                                .frame(width: 44, height: 44)
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(TaskCategory.allCases) { category in
+                    Button(action: {
+                        selection = category
+                        dismiss()
+                    }) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .top) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(category.color.opacity(0.15))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: category.iconName)
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundStyle(category.color)
+                                }
+                                Spacer()
+                                if selection == category {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(category.color)
+                                }
+                            }
 
-                            Image(systemName: category.iconName)
-                                .font(.title3)
-                                .foregroundStyle(category.color)
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
                             Text(category.displayName)
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.primary)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(selection == category ? category.color : .primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
 
                             Text(category.description)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-
-                        Spacer()
-
-                        if selection == category {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(category.color)
-                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(selection == category
+                                      ? category.color.opacity(0.1)
+                                      : Color(.secondarySystemGroupedBackground))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(selection == category ? category.color : Color.clear, lineWidth: 2)
+                        )
                     }
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(16)
         }
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Category")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Library Picker Sheets
+
+struct HabitPickerSheet: View {
+    let habits: [HabitDefinition]
+    let onSelect: (HabitDefinition) -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if habits.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "heart.circle")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.purple.opacity(0.5))
+                        Text("No habits in library yet.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Add habits in the Library tab first.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(habits) { habit in
+                        Button(action: { onSelect(habit) }) {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill((Color(hex: habit.colorHex) ?? .purple).opacity(0.15))
+                                        .frame(width: 40, height: 40)
+                                    Image(systemName: habit.iconName)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundStyle(Color(hex: habit.colorHex) ?? .purple)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(habit.name)
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.primary)
+                                    Text("\(habit.defaultDurationMinutes) min · min \(habit.minimumDurationMinutes) min")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listStyle(.insetGrouped)
+                }
+            }
+            .navigationTitle("Pick a Habit")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
+            }
+        }
+    }
+}
+
+struct GoalPickerSheet: View {
+    let goals: [GoalDefinition]
+    let onSelect: (GoalDefinition) -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if goals.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "star.circle")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.green.opacity(0.5))
+                        Text("No goals in library yet.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Add goals in the Library tab first.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(goals) { goal in
+                        Button(action: { onSelect(goal) }) {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill((Color(hex: goal.colorHex) ?? .green).opacity(0.15))
+                                        .frame(width: 40, height: 40)
+                                    Image(systemName: goal.iconName)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundStyle(Color(hex: goal.colorHex) ?? .green)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(goal.name)
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.primary)
+                                    Text("\(goal.defaultDurationMinutes) min")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listStyle(.insetGrouped)
+                }
+            }
+            .navigationTitle("Pick a Goal")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
+            }
+        }
     }
 }
 
@@ -840,7 +1132,7 @@ struct CategoryPickerScreen: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .modelContainer(for: ScheduleItem.self, inMemory: true)
+    .modelContainer(for: [ScheduleItem.self, HabitDefinition.self, GoalDefinition.self], inMemory: true)
     .environmentObject(FocusBlockManager())
 }
 
@@ -857,6 +1149,6 @@ struct CategoryPickerScreen: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .modelContainer(for: ScheduleItem.self, inMemory: true)
+    .modelContainer(for: [ScheduleItem.self, HabitDefinition.self, GoalDefinition.self], inMemory: true)
     .environmentObject(FocusBlockManager())
 }
