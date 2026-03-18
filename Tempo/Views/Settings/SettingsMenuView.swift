@@ -66,29 +66,6 @@ struct SettingsMenuView: View {
                 Text("Time Blocking")
             }
 
-            // MARK: - Insights
-
-            Section {
-                NavigationLink {
-                    WeeklyRetrospectiveView()
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "chart.bar.fill")
-                            .foregroundStyle(.purple)
-                            .frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Weekly Review")
-                                .font(.body)
-                            Text("AI-powered weekly reflection")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } header: {
-                Text("Insights")
-            }
-
             // MARK: - Calendar
             
             Section {
@@ -172,11 +149,6 @@ struct SettingsMenuView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done", action: onDismiss)
-            }
-        }
     }
 }
 
