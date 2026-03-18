@@ -77,6 +77,16 @@
 		FB3000000000000000000007 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* ManagedSettings.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		FB3000000000000000000008 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB3000000000000000000005 /* ManagedSettingsUI.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		FB3000000000000000000009 /* TempoShieldExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FB3000000000000000000004 /* TempoShieldExtension.appex */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AB0000000000000000000011 /* HabitDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000001 /* HabitDefinition.swift */; };
+		AB0000000000000000000012 /* GoalDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000002 /* GoalDefinition.swift */; };
+		AB0000000000000000000013 /* ScheduleItemType.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000003 /* ScheduleItemType.swift */; };
+		AB0000000000000000000014 /* ColorExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000004 /* ColorExtensions.swift */; };
+		AB0000000000000000000015 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000005 /* LibraryView.swift */; };
+		AB0000000000000000000016 /* HabitLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000006 /* HabitLibraryView.swift */; };
+		AB0000000000000000000017 /* GoalLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000007 /* GoalLibraryView.swift */; };
+		AB0000000000000000000018 /* HabitDefinitionEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000008 /* HabitDefinitionEditView.swift */; };
+		AB0000000000000000000019 /* GoalDefinitionEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000009 /* GoalDefinitionEditView.swift */; };
+		AB0000000000000000000020 /* InsightsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000010 /* InsightsTabView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -179,6 +189,16 @@
 		FB3000000000000000000003 /* TempoShieldExtension-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
 		FB3000000000000000000004 /* TempoShieldExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TempoShieldExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB3000000000000000000005 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
+		AB0000000000000000000001 /* HabitDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitDefinition.swift; sourceTree = "<group>"; };
+		AB0000000000000000000002 /* GoalDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDefinition.swift; sourceTree = "<group>"; };
+		AB0000000000000000000003 /* ScheduleItemType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleItemType.swift; sourceTree = "<group>"; };
+		AB0000000000000000000004 /* ColorExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorExtensions.swift; sourceTree = "<group>"; };
+		AB0000000000000000000005 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000006 /* HabitLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitLibraryView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000007 /* GoalLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalLibraryView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000008 /* HabitDefinitionEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitDefinitionEditView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000009 /* GoalDefinitionEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDefinitionEditView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000010 /* InsightsTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsTabView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -308,6 +328,9 @@
 				FB1000000000000000000004 /* FocusGroup.swift */,
 				FB200000000000000000001A /* WeeklyStats.swift */,
 				7930B90A2F48EC6C0083955E /* AppAppearance.swift */,
+				AB0000000000000000000001 /* HabitDefinition.swift */,
+				AB0000000000000000000002 /* GoalDefinition.swift */,
+				AB0000000000000000000003 /* ScheduleItemType.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -351,6 +374,8 @@
 				300000000000000000000018 /* Settings */,
 				300000000000000000000019 /* Compensation */,
 				300000000000000000000016 /* Components */,
+				AB0000000000000000000021 /* Library */,
+				AB0000000000000000000022 /* Insights */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -361,6 +386,7 @@
 				100000000000000000000008 /* Constants.swift */,
 				100000000000000000000009 /* DateExtensions.swift */,
 				100000000000000000000010 /* TimeCalculations.swift */,
+				AB0000000000000000000004 /* ColorExtensions.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -454,6 +480,26 @@
 				100000000000000000000043 /* CompensationView.swift */,
 			);
 			path = Compensation;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000021 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000005 /* LibraryView.swift */,
+				AB0000000000000000000006 /* HabitLibraryView.swift */,
+				AB0000000000000000000007 /* GoalLibraryView.swift */,
+				AB0000000000000000000008 /* HabitDefinitionEditView.swift */,
+				AB0000000000000000000009 /* GoalDefinitionEditView.swift */,
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000022 /* Insights */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000010 /* InsightsTabView.swift */,
+			);
+			path = Insights;
 			sourceTree = "<group>";
 		};
 		51249E57C7F2527C0A3A4E24 /* TempoTests */ = {
@@ -728,6 +774,16 @@
 				000000000000000000000044 /* SettingsMenuView.swift in Sources */,
 				000000000000000000000045 /* NotificationService.swift in Sources */,
 				000000000000000000000046 /* RecurrenceFrequency.swift in Sources */,
+				AB0000000000000000000011 /* HabitDefinition.swift in Sources */,
+				AB0000000000000000000012 /* GoalDefinition.swift in Sources */,
+				AB0000000000000000000013 /* ScheduleItemType.swift in Sources */,
+				AB0000000000000000000014 /* ColorExtensions.swift in Sources */,
+				AB0000000000000000000015 /* LibraryView.swift in Sources */,
+				AB0000000000000000000016 /* HabitLibraryView.swift in Sources */,
+				AB0000000000000000000017 /* GoalLibraryView.swift in Sources */,
+				AB0000000000000000000018 /* HabitDefinitionEditView.swift in Sources */,
+				AB0000000000000000000019 /* GoalDefinitionEditView.swift in Sources */,
+				AB0000000000000000000020 /* InsightsTabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -912,7 +968,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
@@ -928,7 +984,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -944,7 +1000,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
@@ -960,7 +1016,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -974,7 +1030,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoFocusExtension/TempoFocusExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoFocusExtension/Info.plist;
@@ -984,7 +1040,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.blockmonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -999,7 +1055,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoFocusExtension/TempoFocusExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoFocusExtension/Info.plist;
@@ -1009,7 +1065,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.blockmonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1040,7 +1096,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoShieldExtension/TempoShieldExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoShieldExtension/Info.plist;
@@ -1049,7 +1105,7 @@
 					"$(inherited)",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.shieldconfig;
 				PRODUCT_NAME = TempoShieldExtension;
 				SDKROOT = iphoneos;
@@ -1065,7 +1121,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoShieldExtension/TempoShieldExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoShieldExtension/Info.plist;
@@ -1074,7 +1130,7 @@
 					"$(inherited)",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.shieldconfig;
 				PRODUCT_NAME = TempoShieldExtension;
 				SDKROOT = iphoneos;
