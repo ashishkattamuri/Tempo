@@ -20,8 +20,11 @@ struct ScheduleView: View {
     var onSettings: (() -> Void)? = nil
 
     @Query private var allItems: [ScheduleItem]
+    @Query(sort: \HabitDefinition.createdAt) private var habitDefs: [HabitDefinition]
+    @Query(sort: \GoalDefinition.createdAt) private var goalDefs: [GoalDefinition]
     @State private var showingDatePicker = false
     @State private var selectedSlotTime: Date?
+    @State private var nowPulse = false
     @State private var showingAddTask = false
     @State private var selectedItem: ScheduleItem?
     @State private var conflictData: ConflictResolutionData?
@@ -33,99 +36,126 @@ struct ScheduleView: View {
     @State private var sleepEarlierSuggestion: Date?
     @State private var sleepNextSlotSuggestion: Date?
 
-    private let startHour = 5   // 5 AM
-    private let endHour = 24    // Midnight
-    private let hourHeight: CGFloat = 80
     private let reshuffleEngine = ReshuffleEngine()
+
+    // MARK: - Timeline Row Model
+
+    enum TimelineRow: Identifiable {
+        case task(ScheduleItem)
+        case nowIndicator
+        case freeSlot(TimeGap)
+        case wakeUp(Date)
+        case windDown(Date)
+
+        var id: String {
+            switch self {
+            case .task(let item):   return "task-\(item.id)"
+            case .nowIndicator:     return "now"
+            case .freeSlot(let g):  return "gap-\(g.start.timeIntervalSince1970)"
+            case .wakeUp(let d):    return "wakeup-\(d.timeIntervalSince1970)"
+            case .windDown(let d):  return "winddown-\(d.timeIntervalSince1970)"
+            }
+        }
+    }
+
+    /// Merged and sorted rows for the timeline list.
+    private var timelineRows: [TimelineRow] {
+        let items = itemsForSelectedDate
+        var rows: [TimelineRow] = []
+        let now = Date()
+        var nowInserted = false
+
+        // Compute sleep marker times for the selected date
+        var wakeUpTime: Date? = nil
+        var windDownTime: Date? = nil
+        if sleepManager.isEnabled, let schedule = sleepManager.sleepSchedule {
+            let cal = Calendar.current
+            var wakeComps = cal.dateComponents([.year, .month, .day], from: selectedDate)
+            wakeComps.hour = schedule.wakeHour
+            wakeComps.minute = schedule.wakeMinute
+            wakeUpTime = cal.date(from: wakeComps)
+
+            var bedComps = cal.dateComponents([.year, .month, .day], from: selectedDate)
+            bedComps.hour = schedule.bedtimeHour
+            bedComps.minute = schedule.bedtimeMinute
+            if let bedtime = cal.date(from: bedComps) {
+                windDownTime = bedtime.addingTimeInterval(-Double(schedule.bufferMinutes * 60))
+            }
+        }
+        var wakeUpInserted = false
+        var windDownInserted = false
+
+        let dayStart = wakeUpTime ?? selectedDate.startOfDay.withTime(hour: 6)
+        let dayEnd   = windDownTime ?? selectedDate.startOfDay.withTime(hour: 22)
+
+        for (i, item) in items.enumerated() {
+            // Insert wake up marker before the first task that starts at or after wake time
+            if let wakeUp = wakeUpTime, !wakeUpInserted, item.startTime >= wakeUp {
+                rows.append(.wakeUp(wakeUp))
+                wakeUpInserted = true
+            }
+
+            // Insert now indicator before the first future item
+            if !nowInserted && selectedDate.isToday && item.startTime > now {
+                rows.append(.nowIndicator)
+                nowInserted = true
+            }
+
+            // Insert wind down marker before the first task that starts after wind-down time
+            if let windDown = windDownTime, !windDownInserted, item.startTime > windDown {
+                rows.append(.windDown(windDown))
+                windDownInserted = true
+            }
+
+            // Find end of last task (scan backward so sleep/now markers don't confuse prevEnd)
+            let prevEnd: Date = {
+                for row in rows.reversed() {
+                    if case .task(let p) = row { return p.endTime }
+                }
+                return dayStart
+            }()
+            let gapMinutes = Int(item.startTime.timeIntervalSince(prevEnd) / 60)
+            let isFutureGap = !selectedDate.isToday || item.startTime > now
+            if gapMinutes >= 30 && isFutureGap {
+                rows.append(.freeSlot(TimeGap(start: prevEnd, durationMinutes: gapMinutes)))
+            }
+
+            rows.append(.task(item))
+
+            // After last item, insert now indicator if still not inserted
+            if !nowInserted && selectedDate.isToday && i == items.count - 1 {
+                rows.append(.nowIndicator)
+                nowInserted = true
+            }
+        }
+
+        // Append wake-up marker if it hasn't been inserted yet
+        if let wakeUp = wakeUpTime, !wakeUpInserted { rows.append(.wakeUp(wakeUp)) }
+
+        // End-of-day free slot: last task → dayEnd (must come before wind-down marker)
+        if let lastTask = items.last {
+            let endGapMins = Int(dayEnd.timeIntervalSince(lastTask.endTime) / 60)
+            let isFuture = !selectedDate.isToday || dayEnd > now
+            if endGapMins >= 30 && isFuture {
+                rows.append(.freeSlot(TimeGap(start: lastTask.endTime, durationMinutes: endGapMins)))
+            }
+        }
+
+        // Wind-down marker goes after the free slot so it bookends the evening
+        if let windDown = windDownTime, !windDownInserted { rows.append(.windDown(windDown)) }
+
+        // If no items and today, show now indicator
+        if items.isEmpty && selectedDate.isToday {
+            rows.append(.nowIndicator)
+        }
+
+        return rows
+    }
 
     private var itemsForSelectedDate: [ScheduleItem] {
         allItems
             .filter { $0.scheduledDate.isSameDay(as: selectedDate) }
             .sorted { $0.startTime < $1.startTime }
-    }
-
-    /// Calculate layout info for overlapping tasks (side-by-side display)
-    private var taskLayoutInfo: [UUID: (column: Int, totalColumns: Int)] {
-        let items = itemsForSelectedDate
-        guard !items.isEmpty else { return [:] }
-
-        var layoutInfo: [UUID: (column: Int, totalColumns: Int)] = [:]
-        var overlapGroups: [[ScheduleItem]] = []
-
-        // Group overlapping items
-        for item in items {
-            var addedToGroup = false
-            for i in 0..<overlapGroups.count {
-                // Check if this item overlaps with any item in the group
-                let groupOverlaps = overlapGroups[i].contains { existing in
-                    item.startTime < existing.endTime && item.endTime > existing.startTime
-                }
-                if groupOverlaps {
-                    overlapGroups[i].append(item)
-                    addedToGroup = true
-                    break
-                }
-            }
-            if !addedToGroup {
-                overlapGroups.append([item])
-            }
-        }
-
-        // Merge groups that have overlapping items
-        var mergedGroups: [[ScheduleItem]] = []
-        for group in overlapGroups {
-            var merged = false
-            for i in 0..<mergedGroups.count {
-                let hasOverlap = group.contains { item in
-                    mergedGroups[i].contains { existing in
-                        item.startTime < existing.endTime && item.endTime > existing.startTime
-                    }
-                }
-                if hasOverlap {
-                    mergedGroups[i].append(contentsOf: group)
-                    merged = true
-                    break
-                }
-            }
-            if !merged {
-                mergedGroups.append(group)
-            }
-        }
-
-        // Assign columns within each group
-        for group in mergedGroups {
-            let sortedGroup = group.sorted { $0.startTime < $1.startTime }
-            var columns: [[ScheduleItem]] = []
-
-            for item in sortedGroup {
-                var placed = false
-                for colIndex in 0..<columns.count {
-                    // Check if item can fit in this column (no overlap with last item in column)
-                    if let lastInColumn = columns[colIndex].last {
-                        if item.startTime >= lastInColumn.endTime {
-                            columns[colIndex].append(item)
-                            layoutInfo[item.id] = (column: colIndex, totalColumns: 0) // totalColumns set later
-                            placed = true
-                            break
-                        }
-                    }
-                }
-                if !placed {
-                    columns.append([item])
-                    layoutInfo[item.id] = (column: columns.count - 1, totalColumns: 0)
-                }
-            }
-
-            // Update totalColumns for all items in this group
-            let totalCols = columns.count
-            for item in sortedGroup {
-                if let info = layoutInfo[item.id] {
-                    layoutInfo[item.id] = (column: info.column, totalColumns: totalCols)
-                }
-            }
-        }
-
-        return layoutInfo
     }
 
     private var hasIssues: Bool {
@@ -165,24 +195,50 @@ struct ScheduleView: View {
                 fixMyDayBanner
             }
 
-            // Timeline content
-            GeometryReader { geometry in
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        timelineContent(geometry: geometry)
-                            .padding(.bottom, 120)
-                    }
-                    .onAppear {
-                        scrollToRelevantTime(proxy: proxy)
-                    }
-                    .onChange(of: selectedDate) { _, _ in
-                        scrollToRelevantTime(proxy: proxy)
+            // Timeline content — dot-and-card list layout
+            ScrollViewReader { proxy in
+                ScrollView {
+                    if itemsForSelectedDate.isEmpty {
+                        emptyDayPlaceholder
+                    } else {
+                        LazyVStack(spacing: 0) {
+                            ForEach(timelineRows) { row in
+                                switch row {
+                                case .task(let item):
+                                    TaskTimelineRow(
+                                        item: item,
+                                        displayColor: displayColor(for: item),
+                                        displayIconName: displayIconName(for: item),
+                                        onTap: { selectedItem = item },
+                                        onToggleComplete: { toggleCompletion(item) }
+                                    )
+                                    .id("task-\(item.id)")
+                                case .nowIndicator:
+                                    NowIndicatorRow()
+                                        .id("now")
+                                case .freeSlot(let gap):
+                                    FreeSlotRow(gap: gap) {
+                                        selectedSlotTime = gap.start
+                                        showingAddTask = true
+                                    }
+                                case .wakeUp(let time):
+                                    WakeUpRow(time: time)
+                                case .windDown(let time):
+                                    WindDownRow(time: time)
+                                }
+                            }
+                        }
+                        .padding(.top, 16)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 120)
                     }
                 }
+                .onAppear { scrollToFirstItem(proxy: proxy) }
+                .onChange(of: selectedDate) { _, _ in scrollToFirstItem(proxy: proxy) }
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Tempo")
+        .toolbar(.hidden, for: .navigationBar)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 focusBlockManager.syncShields(for: Array(allItems))
@@ -192,30 +248,6 @@ struct ScheduleView: View {
                     let invokeKind = ud.string(forKey: "shieldExtension.lastInvocationKind") ?? "never"
                     let invokeTarget = ud.string(forKey: "shieldExtension.lastInvocationTarget") ?? "-"
                     print("🛡️ Shield ext init: \(initTs > 0 ? "YES" : "NO") | last: \(invokeKind) | target: \(invokeTarget)")
-                }
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                if let onSettings = onSettings {
-                    Button(action: onSettings) {
-                        Image(systemName: "gearshape")
-                    }
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: {
-                    selectedSlotTime = nil
-                    onAddTask()
-                }) {
-                   Image(systemName: "plus")
-    .font(.title3)
-    .foregroundStyle(.white)
-    .frame(width: 32, height: 32)
-    .background(Color.accentColor)
-    .clipShape(Circle())
                 }
             }
         }
@@ -311,15 +343,23 @@ struct ScheduleView: View {
 
     private var weekCalendarHeader: some View {
         VStack(spacing: 12) {
-            // Month and year - centered
-            HStack {
+            // Month and year - with settings and add buttons
+            HStack(alignment: .bottom) {
+                if let onSettings = onSettings {
+                    Button(action: onSettings) {
+                        Image(systemName: "gearshape")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.month(.wide)))
                     .font(.title2)
                     .fontWeight(.bold)
                 Text((currentWeekDays.last ?? selectedDate).formatted(.dateTime.year()))
                     .font(.title2)
                     .fontWeight(.bold)
-.foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.accentColor)
 
                 Spacer()
 
@@ -335,6 +375,18 @@ struct ScheduleView: View {
                             .background(Color.accentColor.opacity(0.1))
                             .cornerRadius(8)
                     }
+                }
+
+                Button(action: {
+                    selectedSlotTime = nil
+                    onAddTask()
+                }) {
+                    Image(systemName: "plus")
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(Color.accentColor)
+                        .clipShape(Circle())
                 }
             }
             .padding(.horizontal)
@@ -459,7 +511,9 @@ struct ScheduleView: View {
     private func weekDayButton(for date: Date) -> some View {
         let isSelected = date.isSameDay(as: selectedDate)
         let isToday = date.isToday
-        let hasItems = allItems.contains { $0.scheduledDate.isSameDay(as: date) }
+        let dotCategories = Array(
+            Set(allItems.filter { $0.scheduledDate.isSameDay(as: date) }.map { $0.category })
+        ).sorted { $0.priority < $1.priority }.prefix(3)
 
         return Button(action: { selectedDate = date }) {
             VStack(spacing: 4) {
@@ -470,16 +524,19 @@ struct ScheduleView: View {
                 Text(date.formatted(.dateTime.day()))
                     .font(.callout)
                     .fontWeight(isToday ? .bold : .medium)
-                   .foregroundStyle(isSelected ? .white : (isToday ? .accentColor : .primary))
+                    .foregroundStyle(isSelected ? .white : (isToday ? .accentColor : .primary))
 
-                // Activity indicator
+                // Category-colored activity dots
                 HStack(spacing: 2) {
-                    Circle()
-                        .fill(hasItems ? Color.green : Color.clear)
-                        .frame(width: 4, height: 4)
-                    Circle()
-                        .fill(Color.clear)
-                        .frame(width: 4, height: 4)
+                    if dotCategories.isEmpty {
+                        Circle().fill(Color.clear).frame(width: 4, height: 4)
+                    } else {
+                        ForEach(Array(dotCategories), id: \.self) { cat in
+                            Circle()
+                                .fill(isSelected ? Color.white.opacity(0.85) : cat.color)
+                                .frame(width: 4, height: 4)
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -492,436 +549,166 @@ struct ScheduleView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Timeline Content
+    // MARK: - Timeline Helpers
 
-    private func timelineContent(geometry: GeometryProxy) -> some View {
-        let totalHeight = CGFloat(endHour - startHour) * hourHeight
-        let taskAreaWidth = geometry.size.width - 90 // Account for time labels and padding
-
-        return HStack(alignment: .top, spacing: 0) {
-            // Left column: Time labels with dots
-            VStack(spacing: 0) {
-                ForEach(startHour..<endHour, id: \.self) { hour in
-                    timeLabel(for: hour)
-                        .id(hour)
-                }
-            }
-            .frame(width: 60)
-
-            // Right column: Tasks area with dashed line
-            ZStack(alignment: .topLeading) {
-                // Tappable hour slots (behind everything)
-                VStack(spacing: 0) {
-                    ForEach(startHour..<endHour, id: \.self) { hour in
-                        Rectangle()
-                            .fill(Color.clear)
-                            .frame(height: hourHeight)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                let tappedTime = selectedDate.startOfDay.withTime(hour: hour)
-                                selectedSlotTime = tappedTime
-                                showingAddTask = true
-                            }
-                    }
-                }
-
-                // Vertical dashed line
-                Path { path in
-                    path.move(to: CGPoint(x: 1, y: 0))
-                    path.addLine(to: CGPoint(x: 1, y: totalHeight))
-                }
-                .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                .foregroundStyle(Color(.systemGray4))
-                .allowsHitTesting(false)
-
-                // Hour grid lines (subtle)
-                ForEach(startHour..<endHour, id: \.self) { hour in
-                    Rectangle()
-                        .fill(Color(.systemGray5))
-                        .frame(height: 0.5)
-                        .offset(y: CGFloat(hour - startHour) * hourHeight)
-                        .allowsHitTesting(false)
-                }
-
-                // Sleep boundary overlay
-                sleepBoundaryOverlay(totalHeight: totalHeight)
-
-                // Gap indicators
-                ForEach(calculateGaps().filter { $0.durationMinutes >= 30 && $0.durationMinutes <= 300 }, id: \.start) { gap in
-                    gapIndicatorView(gap: gap)
-                        .frame(width: taskAreaWidth - 20)
-                        .offset(x: 12, y: yPositionFromTime(gap.start) + 10)
-                }
-
-                // Task blocks - positioned absolutely with side-by-side for overlaps
-                ForEach(itemsForSelectedDate) { item in
-                    let layout = taskLayoutInfo[item.id] ?? (column: 0, totalColumns: 1)
-                    let baseWidth = taskAreaWidth - 20
-                    let itemWidth = layout.totalColumns > 1 ? (baseWidth - CGFloat(layout.totalColumns - 1) * 4) / CGFloat(layout.totalColumns) : baseWidth
-                    let xOffset: CGFloat = 12 + CGFloat(layout.column) * (itemWidth + 4)
-                    // Height exactly proportional to duration - no adjustments
-                    let itemHeight = CGFloat(item.durationMinutes) / 60.0 * hourHeight
-
-                    taskCard(for: item)
-                        .frame(width: itemWidth)
-                        .frame(height: itemHeight)
-                        .clipped() // Clip any overflow from internal padding
-                        .offset(x: xOffset, y: yPositionFromTime(item.startTime))
-                }
-
-                // Current time indicator
-                if selectedDate.isToday {
-                    currentTimeIndicator
-                        .offset(y: yPositionFromCurrentTime())
-                        .allowsHitTesting(false)
-                }
-            }
-            .frame(height: totalHeight)
+    private var emptyDayPlaceholder: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "calendar.badge.plus")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary.opacity(0.4))
+            Text("Nothing scheduled")
+                .font(.title3)
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+            Text("Tap + to add your first block for the day.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
         }
-        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
     }
 
-    private func timeLabel(for hour: Int) -> some View {
-        let isCurrentHour = selectedDate.isToday && Date().hour == hour
-
-        return HStack(spacing: 4) {
-            Text(formatHour(hour))
-                .font(.caption)
-                .fontWeight(isCurrentHour ? .bold : .regular)
-                .foregroundStyle(isCurrentHour ? Color.accentColor : Color.secondary)
-                .frame(width: 40, alignment: .trailing)
-
-            // Dot on timeline
-            Circle()
-                .fill(isCurrentHour ? Color.accentColor : Color(.systemGray4))
-                .frame(width: isCurrentHour ? 8 : 5, height: isCurrentHour ? 8 : 5)
+    func displayColor(for item: ScheduleItem) -> Color {
+        if let habId = item.habitDefinitionId,
+           let def = habitDefs.first(where: { $0.id == habId }) {
+            return Color(hex: def.colorHex) ?? item.category.color
         }
-        .frame(height: hourHeight, alignment: .top)
-        .padding(.top, 0)
-    }
-
-    private var currentTimeIndicator: some View {
-        HStack(spacing: 0) {
-            Circle()
-                .fill(Color.red)
-                .frame(width: 10, height: 10)
-            Rectangle()
-                .fill(Color.red)
-                .frame(height: 2)
+        if let goalId = item.goalDefinitionId,
+           let def = goalDefs.first(where: { $0.id == goalId }) {
+            return Color(hex: def.colorHex) ?? item.category.color
         }
+        return item.category.color
     }
 
-    private func yPositionFromTime(_ time: Date) -> CGFloat {
-        let minutesSinceStart = (time.hour - startHour) * 60 + time.minute
-        return CGFloat(minutesSinceStart) / 60.0 * hourHeight
-    }
-
-    private func yPositionFromCurrentTime() -> CGFloat {
-        let now = Date()
-        let minutesSinceStart = (now.hour - startHour) * 60 + now.minute
-        return CGFloat(minutesSinceStart) / 60.0 * hourHeight
-    }
-
-    // MARK: - Sleep Boundary Overlay
-
-    @ViewBuilder
-    private func sleepBoundaryOverlay(totalHeight: CGFloat) -> some View {
-        if sleepManager.isEnabled,
-           let range = sleepManager.getSleepBlockedRange(for: selectedDate) {
-
-            let rawWakeY  = yPositionFromTime(range.wakeTime)
-            let rawBedY   = yPositionFromTime(range.bedtime)
-            let wakeY     = max(0, min(totalHeight, rawWakeY))
-            let bedY      = max(0, min(totalHeight, rawBedY))
-
-            // Morning sleep block: top of timeline → wake time
-            if wakeY > 0 {
-                // Shaded region
-                Rectangle()
-                    .fill(Color.indigo.opacity(0.07))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: wakeY)
-                    .allowsHitTesting(false)
-
-                // Boundary line at wake time
-                Rectangle()
-                    .fill(Color.indigo.opacity(0.3))
-                    .frame(maxWidth: .infinity, maxHeight: 1)
-                    .offset(y: wakeY)
-                    .allowsHitTesting(false)
-
-                // Wake time label
-                Label(sleepManager.sleepSchedule?.wakeTimeString ?? "", systemImage: "sunrise.fill")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundColor(.indigo.opacity(0.7))
-                    .offset(x: 10, y: wakeY + 3)
-                    .allowsHitTesting(false)
-            }
-
-            // Evening sleep block: bedtime → end of timeline
-            if bedY < totalHeight {
-                // Shaded region
-                Rectangle()
-                    .fill(Color.indigo.opacity(0.07))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: totalHeight - bedY)
-                    .offset(y: bedY)
-                    .allowsHitTesting(false)
-
-                // Boundary line at bedtime
-                Rectangle()
-                    .fill(Color.indigo.opacity(0.3))
-                    .frame(maxWidth: .infinity, maxHeight: 1)
-                    .offset(y: bedY)
-                    .allowsHitTesting(false)
-
-                // Bedtime label
-                Label(sleepManager.sleepSchedule?.bedtimeString ?? "", systemImage: "moon.fill")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundColor(.indigo.opacity(0.7))
-                    .offset(x: 10, y: bedY + 4)
-                    .allowsHitTesting(false)
-            }
+    func displayIconName(for item: ScheduleItem) -> String {
+        if let habId = item.habitDefinitionId,
+           let def = habitDefs.first(where: { $0.id == habId }) {
+            return def.iconName
         }
-    }
-
-    // MARK: - Gap Indicators
-
-    private func gapStartingAtHour(_ hour: Int) -> TimeGap? {
-        let gaps = calculateGaps()
-        return gaps.first { $0.start.hour == hour && $0.durationMinutes >= 30 && $0.durationMinutes <= 300 }
-    }
-
-    private func gapIndicatorView(gap: TimeGap) -> some View {
-        let friendlyMessage = gapMessage(for: gap.durationMinutes)
-
-        return Button(action: {
-            selectedSlotTime = gap.start
-            showingAddTask = true
-        }) {
-            HStack(spacing: 6) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.accentColor.opacity(0.6))
-
-                Text(friendlyMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .foregroundStyle(Color(.systemGray4))
-            )
+        if let goalId = item.goalDefinitionId,
+           let def = goalDefs.first(where: { $0.id == goalId }) {
+            return def.iconName
         }
-        .buttonStyle(.plain)
+        return item.category.iconName
     }
 
-    private func gapMessage(for minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-
-        if hours > 0 && mins > 0 {
-            return "\(hours)h \(mins)m available"
-        } else if hours > 0 {
-            return "\(hours)h available"
-        } else {
-            return "\(mins)m available"
-        }
-    }
-
-    private func calculateGaps() -> [TimeGap] {
-        var gaps: [TimeGap] = []
-        let dayStart = selectedDate.startOfDay.withTime(hour: startHour)
-        let dayEnd = selectedDate.startOfDay.withTime(hour: endHour)
-
-        var currentTime = dayStart
-
-        for item in itemsForSelectedDate {
-            if item.startTime > currentTime {
-                let gapMinutes = Int(item.startTime.timeIntervalSince(currentTime) / 60)
-                if gapMinutes > 0 {
-                    gaps.append(TimeGap(start: currentTime, durationMinutes: gapMinutes))
-                }
-            }
-            currentTime = max(currentTime, item.endTime)
-        }
-
-        if currentTime < dayEnd {
-            let gapMinutes = Int(dayEnd.timeIntervalSince(currentTime) / 60)
-            if gapMinutes > 0 {
-                gaps.append(TimeGap(start: currentTime, durationMinutes: gapMinutes))
-            }
-        }
-
-        return gaps
-    }
-
-    // MARK: - Task Card
-
-    private func taskCard(for item: ScheduleItem) -> some View {
-        let isInProgress = selectedDate.isToday && item.startTime <= Date() && item.endTime > Date()
-        let remainingMinutes = isInProgress ? Int(item.endTime.timeIntervalSince(Date()) / 60) : nil
-        let isCompact = item.durationMinutes <= 30
-
-        return Button(action: {
-            selectedItem = item
-        }) {
-            HStack(alignment: .center, spacing: isCompact ? 6 : 10) {
-                // Duration bar on left (spans full height)
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(item.category.color)
-                    .frame(width: 4)
-
-                // Circular icon - smaller for compact view
-                if !isCompact {
-                    ZStack {
-                        Circle()
-                            .fill(item.category.color.opacity(0.15))
-                            .frame(width: 40, height: 40)
-
-                        Image(systemName: item.category.iconName)
-                            .font(.system(size: 16))
-                            .foregroundStyle(item.category.color)
-                    }
-                }
-
-                // Content - simplified for compact view
-                if isCompact {
-                    // Compact: single line with title and time
-                    HStack(spacing: 6) {
-                        Image(systemName: item.category.iconName)
-                            .font(.system(size: 12))
-                            .foregroundStyle(item.category.color)
-
-                        Text(item.title)
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(item.isCompleted ? .secondary : .primary)
-                            .strikethrough(item.isCompleted)
-                            .lineLimit(1)
-
-                        Spacer()
-
-                        Text(formatTimeRange(item))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-
-                        // Checkbox - smaller for compact view
-                        Button(action: { toggleCompletion(item) }) {
-                            Circle()
-                                .stroke(item.isCompleted ? Color.green : item.category.color, lineWidth: 1.5)
-                                .frame(width: 18, height: 18)
-                                .overlay(
-                                    item.isCompleted ?
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundStyle(.green)
-                                    : nil
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } else {
-                    // Full view
-                    VStack(alignment: .leading, spacing: 3) {
-                        if let remaining = remainingMinutes {
-                            Text("\(remaining) min remaining")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundStyle(Color.accentColor)
-                        } else {
-                            Text(formatTimeRange(item))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text(item.title)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(item.isCompleted ? .secondary : .primary)
-                            .strikethrough(item.isCompleted)
-                            .lineLimit(3)
-
-                        if item.durationMinutes >= 60 {
-                            Text("\(item.durationMinutes) min")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    // Checkbox - only in full view
-                    Button(action: { toggleCompletion(item) }) {
-                        Circle()
-                            .stroke(item.isCompleted ? Color.green : item.category.color, lineWidth: 2)
-                            .frame(width: 24, height: 24)
-                            .overlay(
-                                item.isCompleted ?
-                                Image(systemName: "checkmark")
-                                    .font(.caption2.bold())
-                                    .foregroundStyle(.green)
-                                : nil
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, isCompact ? 6 : 10)
-            .padding(.vertical, isCompact ? 4 : 8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isCompact ? .center : .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(item.category.color.opacity(item.isCompleted ? 0.05 : 0.08))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(item.category.color.opacity(0.2), lineWidth: 1)
-            )
-            .opacity(item.isCompleted ? 0.7 : 1.0)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func formatTimeRange(_ item: ScheduleItem) -> String {
+    private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
-        let start = formatter.string(from: item.startTime)
-        let end = formatter.string(from: item.endTime)
-        return "\(start) - \(end)"
+        return formatter.string(from: date)
+    }
+
+    private func formatDuration(_ minutes: Int) -> String {
+        if minutes >= 60 && minutes % 60 == 0 {
+            return "\(minutes / 60)h"
+        } else if minutes >= 60 {
+            return "\(minutes / 60)h \(minutes % 60)m"
+        }
+        return "\(minutes)m"
+    }
+
+    // MARK: - Task Card (old compact style - retained for TaskDetailSheet compatibility)
+
+    private func taskCard_unused(for item: ScheduleItem) -> some View {
+        let isInProgress = selectedDate.isToday && item.startTime <= Date() && item.endTime > Date()
+        let isCompact = item.durationMinutes <= 20
+        let elapsed: Double = isInProgress
+            ? min(1.0, max(0, Date().timeIntervalSince(item.startTime) / item.endTime.timeIntervalSince(item.startTime)))
+            : 0
+
+        return Button(action: { selectedItem = item }) {
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(item.category.color.opacity(item.isCompleted ? 0.38 : 0.84))
+
+                if isInProgress && elapsed > 0 {
+                    GeometryReader { geo in
+                        VStack(spacing: 0) {
+                            Color.black.opacity(0.15)
+                                .frame(height: geo.size.height * elapsed)
+                            Color.clear
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .allowsHitTesting(false)
+                }
+
+                if isCompact {
+                    HStack(spacing: 5) {
+                        Image(systemName: item.category.iconName)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.85))
+                        Text(item.title)
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .strikethrough(item.isCompleted)
+                            .lineLimit(1)
+                        Spacer(minLength: 2)
+                        taskCheckbox(for: item, size: 15)
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .top, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(item.title)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.white)
+                                    .strikethrough(item.isCompleted)
+                                    .lineLimit(2)
+                                Text("\(formatTime(item.startTime)) - \(formatTime(item.endTime))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.white.opacity(0.72))
+                            }
+                            Spacer(minLength: 4)
+                            taskCheckbox(for: item, size: 20)
+                        }
+                        if isInProgress {
+                            Text("\(max(0, Int(item.endTime.timeIntervalSince(Date()) / 60))) min left")
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.white.opacity(0.88))
+                                .padding(.top, 2)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.top, 7)
+                    .padding(.bottom, 5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .shadow(color: item.category.color.opacity(item.isCompleted ? 0 : 0.28), radius: 4, x: 0, y: 2)
+            .opacity(item.isCompleted ? 0.72 : 1.0)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func taskCheckbox(for item: ScheduleItem, size: CGFloat) -> some View {
+        Button(action: { toggleCompletion(item) }) {
+            ZStack {
+                Circle()
+                    .fill(.white.opacity(item.isCompleted ? 0.9 : 0.22))
+                    .frame(width: size, height: size)
+                if item.isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: size * 0.46, weight: .bold))
+                        .foregroundStyle(item.category.color)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Helpers
 
     private var completedCount: Int {
         itemsForSelectedDate.filter { $0.isCompleted }.count
-    }
-
-    private func formatHour(_ hour: Int) -> String {
-        if hour == 0 || hour == 24 {
-            return "12am"
-        } else if hour == 12 {
-            return "12pm"
-        } else if hour > 12 {
-            return "\(hour - 12)pm"
-        } else {
-            return "\(hour)am"
-        }
-    }
-
-    private func timeFromYPosition(_ y: CGFloat) -> Date {
-        let totalMinutes = Int(y / hourHeight * 60)
-        let roundedMinutes = (totalMinutes / 15) * 15
-        let hour = startHour + (roundedMinutes / 60)
-        let minute = roundedMinutes % 60
-        return selectedDate.startOfDay.withTime(hour: min(hour, endHour - 1), minute: minute)
     }
 
     private func toggleCompletion(_ item: ScheduleItem) {
@@ -936,17 +723,13 @@ struct ScheduleView: View {
         }
     }
 
-    private func scrollToRelevantTime(proxy: ScrollViewProxy) {
+    private func scrollToFirstItem(proxy: ScrollViewProxy) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if selectedDate.isToday {
-                let targetHour = max(startHour, Date().hour - 1)
-                withAnimation {
-                    proxy.scrollTo(targetHour, anchor: .top)
-                }
-            } else if let firstItem = itemsForSelectedDate.first {
-                let targetHour = max(startHour, firstItem.startTime.hour - 1)
-                withAnimation {
-                    proxy.scrollTo(targetHour, anchor: .top)
+            withAnimation {
+                if selectedDate.isToday {
+                    proxy.scrollTo("now", anchor: .center)
+                } else if let firstItem = itemsForSelectedDate.first {
+                    proxy.scrollTo("task-\(firstItem.id)", anchor: .top)
                 }
             }
         }
@@ -1137,6 +920,282 @@ enum ConflictAction {
 struct TimeGap {
     let start: Date
     let durationMinutes: Int
+}
+
+// MARK: - Timeline Row Views
+
+struct TaskTimelineRow: View {
+    let item: ScheduleItem
+    let displayColor: Color
+    let displayIconName: String
+    let onTap: () -> Void
+    let onToggleComplete: () -> Void
+
+    private let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f
+    }()
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Left: time + dot + vertical line
+            VStack(spacing: 0) {
+                Text(timeFormatter.string(from: item.startTime))
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+
+                Circle()
+                    .fill(displayColor)
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 6)
+
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 1.5)
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(width: 56)
+
+            // Right: card
+            taskCard
+                .padding(.bottom, 6)
+        }
+    }
+
+    private var taskCard: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                // Icon square
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(displayColor.opacity(0.12))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: displayIconName)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(displayColor)
+                }
+
+                // Text content
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .strikethrough(item.isCompleted)
+                        .lineLimit(2)
+
+                    // Category label + duration
+                    HStack(spacing: 4) {
+                        Text(item.category.displayName.uppercased())
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(displayColor)
+                        Text("• \(formatDuration(item.durationMinutes))")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Tag chips
+                    if item.isFocusBlock || item.isRecurring {
+                        HStack(spacing: 6) {
+                            if item.isFocusBlock  { TagChip("FOCUS") }
+                            if item.isRecurring   { TagChip("RECURRING") }
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // Completion circle
+                taskCheckboxView
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.07), radius: 6, x: 0, y: 2)
+            )
+            .opacity(item.isCompleted ? 0.65 : 1.0)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var taskCheckboxView: some View {
+        Button(action: onToggleComplete) {
+            ZStack {
+                Circle()
+                    .stroke(displayColor.opacity(0.5), lineWidth: 2)
+                    .frame(width: 26, height: 26)
+                if item.isCompleted {
+                    Circle()
+                        .fill(displayColor)
+                        .frame(width: 26, height: 26)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func formatDuration(_ minutes: Int) -> String {
+        if minutes >= 60 && minutes % 60 == 0 { return "\(minutes/60)h" }
+        if minutes >= 60 { return "\(minutes/60)h \(minutes%60)m" }
+        return "\(minutes)m"
+    }
+}
+
+struct NowIndicatorRow: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(Date(), format: .dateTime.hour().minute())
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.orange)
+                .frame(width: 44, alignment: .trailing)
+                .frame(width: 56)
+
+            Circle()
+                .fill(Color.orange)
+                .frame(width: 10, height: 10)
+
+            Rectangle()
+                .fill(Color.orange.opacity(0.6))
+                .frame(height: 1.5)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct WakeUpRow: View {
+    let time: Date
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(time, format: .dateTime.hour().minute())
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(.orange)
+                .frame(width: 44, alignment: .trailing)
+                .frame(width: 56)
+
+            Image(systemName: "sunrise.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.orange.opacity(0.85))
+
+            Text("Wake up")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.orange.opacity(0.85))
+
+            Rectangle()
+                .fill(Color.orange.opacity(0.2))
+                .frame(height: 1)
+        }
+        .padding(.vertical, 8)
+        // Gradient is purely visual — zero layout height, extends above without pushing content
+        .background(alignment: .top) {
+            LinearGradient(
+                colors: [Color.orange.opacity(0.07), Color.clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 1000)
+            .offset(y: -980) // bottom of gradient lands at ~20pt into row (separator line level)
+            .padding(.horizontal, -16)
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+struct WindDownRow: View {
+    let time: Date
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(time, format: .dateTime.hour().minute())
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(.indigo)
+                .frame(width: 44, alignment: .trailing)
+                .frame(width: 56)
+
+            Image(systemName: "moon.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.indigo.opacity(0.85))
+
+            Text("Wind down")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.indigo.opacity(0.85))
+
+            Rectangle()
+                .fill(Color.indigo.opacity(0.2))
+                .frame(height: 1)
+        }
+        .padding(.vertical, 8)
+        // Gradient is purely visual — zero layout height, extends below without pushing content
+        .background(alignment: .bottom) {
+            LinearGradient(
+                colors: [Color.clear, Color.indigo.opacity(0.06)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 1000)
+            .offset(y: 980) // top of gradient lands at ~20pt from row bottom (separator line level)
+            .padding(.horizontal, -16)
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+struct FreeSlotRow: View {
+    let gap: TimeGap
+    let onTap: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Color.clear.frame(width: 56)
+
+            Button(action: onTap) {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle")
+                        .font(.caption)
+                        .foregroundStyle(Color.accentColor.opacity(0.6))
+                    Text(gapMessage)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(.systemGray5), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.bottom, 8)
+    }
+
+    private var gapMessage: String {
+        let m = gap.durationMinutes
+        let h = m / 60, rem = m % 60
+        if h > 0 && rem > 0 { return "\(h)h \(rem)m free" }
+        if h > 0 { return "\(h)h free" }
+        return "\(m)m free"
+    }
+}
+
+struct TagChip: View {
+    let label: String
+    init(_ label: String) { self.label = label }
+    var body: some View {
+        Text(label)
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color(.systemGray5))
+            .cornerRadius(4)
+    }
 }
 
 // MARK: - Task Detail Sheet
