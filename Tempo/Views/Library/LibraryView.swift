@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Root Library tab — segmented picker between Habits and Goals.
+/// Root Library tab — segmented picker between Habits, Goals, and Tasks.
 struct LibraryView: View {
-    @State private var selectedSegment: LibrarySegment = .habits
+    @State private var selectedSegment: LibrarySegment = .tasks
 
     enum LibrarySegment: String, CaseIterable {
+        case tasks  = "Tasks"
         case habits = "Habits"
         case goals  = "Goals"
     }
@@ -15,6 +16,7 @@ struct LibraryView: View {
                 switch selectedSegment {
                 case .habits: HabitLibraryView()
                 case .goals:  GoalLibraryView()
+                case .tasks:  TaskLibraryView()
                 }
             }
             .navigationTitle("Library")
@@ -27,7 +29,7 @@ struct LibraryView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 200)
+                    .frame(width: 280)
                 }
             }
         }
@@ -36,5 +38,5 @@ struct LibraryView: View {
 
 #Preview {
     LibraryView()
-        .modelContainer(for: [HabitDefinition.self, GoalDefinition.self], inMemory: true)
+        .modelContainer(for: [HabitDefinition.self, GoalDefinition.self, TaskDefinition.self], inMemory: true)
 }
