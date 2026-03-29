@@ -23,6 +23,7 @@ struct TempoApp: App {
             ScheduleItem.self,
             HabitDefinition.self,
             GoalDefinition.self,
+            TaskDefinition.self,
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,

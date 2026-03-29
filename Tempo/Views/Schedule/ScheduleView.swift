@@ -22,6 +22,7 @@ struct ScheduleView: View {
     @Query private var allItems: [ScheduleItem]
     @Query(sort: \HabitDefinition.createdAt) private var habitDefs: [HabitDefinition]
     @Query(sort: \GoalDefinition.createdAt) private var goalDefs: [GoalDefinition]
+    @Query(sort: \TaskDefinition.createdAt) private var taskDefs: [TaskDefinition]
     @State private var showingDatePicker = false
     @State private var selectedSlotTime: Date?
     @State private var nowPulse = false
@@ -30,6 +31,9 @@ struct ScheduleView: View {
     @State private var conflictData: ConflictResolutionData?
     @State private var savedItem: ScheduleItem?
     @State private var pendingConflictCheck: ScheduleItem?
+
+    // Recommendation confirmation sheet
+    @State private var pendingSchedule: PendingScheduleInfo?
 
     // Sleep overlap state (for tasks created via timeline tap)
     @State private var sleepOverlapItem: ScheduleItem?
@@ -95,16 +99,23 @@ struct ScheduleView: View {
                 wakeUpInserted = true
             }
 
-            // Insert now indicator before the first future item
-            if !nowInserted && selectedDate.isToday && item.startTime > now {
-                rows.append(.nowIndicator)
-                nowInserted = true
-            }
-
-            // Insert wind down marker before the first task that starts after wind-down time
+            // Wind down must be inserted before the now indicator so chronological
+            // order is preserved (e.g. wind-down at 9:30 PM comes before now at 10:29 PM).
             if let windDown = windDownTime, !windDownInserted, item.startTime > windDown {
                 rows.append(.windDown(windDown))
                 windDownInserted = true
+            }
+
+            // Only insert a standalone now indicator before a future task.
+            // If the current item is in-progress, skip the row — the task card
+            // itself renders the now line as an overlay.
+            let itemIsInProgress = item.startTime <= now && item.endTime > now
+            if !nowInserted && selectedDate.isToday && !itemIsInProgress && item.startTime > now {
+                rows.append(.nowIndicator)
+                nowInserted = true
+            }
+            if itemIsInProgress && selectedDate.isToday {
+                nowInserted = true
             }
 
             // Find end of last task (scan backward so sleep/now markers don't confuse prevEnd)
@@ -164,6 +175,30 @@ struct ScheduleView: View {
         return engine.hasIssues(items: itemsForSelectedDate, for: selectedDate)
     }
 
+    /// Free slots available for the selected date (empty day = entire day is free).
+    private var hasFreeSlots: Bool {
+        if itemsForSelectedDate.isEmpty { return true }
+        return timelineRows.contains { if case .freeSlot = $0 { return true }; return false }
+    }
+
+    /// Pending library tasks sorted by deadline (soonest first, nil last), then oldest created.
+    private var taskRecommendations: [TaskDefinition] {
+        guard selectedDate.isToday || !selectedDate.isPast, hasFreeSlots else { return [] }
+        let scheduledIds = Set(allItems.compactMap { $0.taskDefinitionId })
+        return taskDefs
+            .filter { !$0.isCompleted && !scheduledIds.contains($0.id) }
+            .sorted {
+                switch ($0.deadline, $1.deadline) {
+                case (nil, nil):   return $0.createdAt < $1.createdAt
+                case (nil, _):     return false
+                case (_, nil):     return true
+                case (let a, let b): return a! < b!
+                }
+            }
+            .prefix(3)
+            .map { $0 }
+    }
+
     /// True when today is selected and at least one incomplete task's start time has passed.
     private var hasPastIncompleteItems: Bool {
         guard selectedDate.isToday else { return false }
@@ -195,6 +230,11 @@ struct ScheduleView: View {
                 fixMyDayBanner
             }
 
+            // Task recommendations — shown when pending library tasks + free slots exist
+            if !taskRecommendations.isEmpty {
+                taskRecommendationBanner
+            }
+
             // Timeline content — dot-and-card list layout
             ScrollViewReader { proxy in
                 ScrollView {
@@ -207,6 +247,7 @@ struct ScheduleView: View {
                                 case .task(let item):
                                     TaskTimelineRow(
                                         item: item,
+                                        isCurrentTask: item.startTime <= Date() && item.endTime > Date() && selectedDate.isToday,
                                         displayColor: displayColor(for: item),
                                         displayIconName: displayIconName(for: item),
                                         onTap: { selectedItem = item },
@@ -335,6 +376,13 @@ struct ScheduleView: View {
                 }
             )
             .presentationDetents([.height(280)])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $pendingSchedule) { info in
+            ScheduleConfirmationSheet(info: info) {
+                commitSchedule(info)
+            }
+            .presentationDetents([.height(260)])
             .presentationDragIndicator(.visible)
         }
     }
@@ -492,6 +540,147 @@ struct ScheduleView: View {
             .background(Color.accentColor)
         }
         .buttonStyle(.plain)
+    }
+
+    private var taskRecommendationBanner: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Schedule from your tasks")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(taskRecommendations) { task in
+                        taskRecommendationPill(task)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func taskRecommendationPill(_ task: TaskDefinition) -> some View {
+        let color = Color(hex: task.colorHex) ?? .blue
+        let slot = bestSlot(for: task)
+        return Button {
+            confirmSchedule(task)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: task.iconName)
+                    .font(.caption)
+                    .foregroundStyle(color)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(task.title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        if let slot {
+                            Text(slot, format: .dateTime.hour().minute())
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(color)
+                            Text("·")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("\(task.durationMinutes)m")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        if let deadline = task.deadline {
+                            Text("·")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text(deadline, format: .dateTime.month(.abbreviated).day())
+                                .font(.caption2)
+                                .foregroundStyle(deadline < Date() ? .red : .secondary)
+                        }
+                    }
+                }
+                Image(systemName: slot != nil ? "plus.circle.fill" : "clock.badge.xmark")
+                    .font(.callout)
+                    .foregroundStyle(slot != nil ? color : .secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.2), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(slot == nil)
+    }
+
+    /// Wake-up and wind-down boundaries for the selected date, respecting sleep schedule.
+    private var dayBoundaries: (start: Date, end: Date) {
+        let cal = Calendar.current
+        var dayStart = selectedDate.startOfDay.withTime(hour: 6)
+        var dayEnd   = selectedDate.startOfDay.withTime(hour: 22)
+        if sleepManager.isEnabled, let schedule = sleepManager.sleepSchedule {
+            var wakeComps = DateComponents(hour: schedule.wakeHour, minute: schedule.wakeMinute)
+            wakeComps.year  = cal.component(.year,  from: selectedDate)
+            wakeComps.month = cal.component(.month, from: selectedDate)
+            wakeComps.day   = cal.component(.day,   from: selectedDate)
+            if let wake = cal.date(from: wakeComps) { dayStart = wake }
+            var bedComps = DateComponents(hour: schedule.bedtimeHour, minute: schedule.bedtimeMinute)
+            bedComps.year  = cal.component(.year,  from: selectedDate)
+            bedComps.month = cal.component(.month, from: selectedDate)
+            bedComps.day   = cal.component(.day,   from: selectedDate)
+            if let bed = cal.date(from: bedComps) {
+                dayEnd = bed.addingTimeInterval(-Double(schedule.bufferMinutes * 60))
+            }
+        }
+        return (dayStart, dayEnd)
+    }
+
+    /// Best sleep-aware start time for scheduling a task, nil if no slot fits.
+    private func bestSlot(for task: TaskDefinition) -> Date? {
+        let bounds = dayBoundaries
+        let taskDuration = TimeInterval(task.durationMinutes * 60)
+
+        // Build candidate slots from timeline free gaps
+        var candidates = timelineRows.compactMap { row -> Date? in
+            guard case .freeSlot(let gap) = row else { return nil }
+            let start = max(gap.start, bounds.start)
+            let end   = min(gap.start.addingTimeInterval(TimeInterval(gap.durationMinutes * 60)), bounds.end)
+            guard end.timeIntervalSince(start) >= taskDuration else { return nil }
+            return start
+        }
+
+        // Empty day — whole window is free
+        if candidates.isEmpty && itemsForSelectedDate.isEmpty {
+            let start = max(bounds.start, Date()) // don't schedule in the past on today
+            if bounds.end.timeIntervalSince(start) >= taskDuration {
+                candidates.append(start)
+            }
+        }
+
+        return candidates.first
+    }
+
+    private func confirmSchedule(_ task: TaskDefinition) {
+        guard let start = bestSlot(for: task) else { return }
+        pendingSchedule = PendingScheduleInfo(task: task, startTime: start)
+    }
+
+    private func commitSchedule(_ info: PendingScheduleInfo) {
+        let item = ScheduleItem(
+            title: info.task.title,
+            category: .flexibleTask,
+            startTime: info.startTime,
+            durationMinutes: info.task.durationMinutes,
+            scheduledDate: selectedDate,
+            taskDefinitionId: info.task.id
+        )
+        modelContext.insert(item)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        pendingSchedule = nil
     }
 
     // Sunday of the week containing selectedDate.
@@ -721,6 +910,11 @@ struct ScheduleView: View {
         if item.isFocusBlock {
             focusBlockManager.syncShields(for: Array(allItems))
         }
+        // Sync completion back to the library TaskDefinition if linked
+        if let taskId = item.taskDefinitionId,
+           let def = taskDefs.first(where: { $0.id == taskId }) {
+            def.isCompleted = item.isCompleted
+        }
     }
 
     private func scrollToFirstItem(proxy: ScrollViewProxy) {
@@ -926,6 +1120,7 @@ struct TimeGap {
 
 struct TaskTimelineRow: View {
     let item: ScheduleItem
+    let isCurrentTask: Bool
     let displayColor: Color
     let displayIconName: String
     let onTap: () -> Void
@@ -944,7 +1139,7 @@ struct TaskTimelineRow: View {
                 Text(timeFormatter.string(from: item.startTime))
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
                     .foregroundStyle(.secondary)
-                    .frame(width: 44, alignment: .trailing)
+                    .fixedSize(horizontal: true, vertical: false)
 
                 Circle()
                     .fill(displayColor)
@@ -956,12 +1151,33 @@ struct TaskTimelineRow: View {
                     .frame(width: 1.5)
                     .frame(maxHeight: .infinity)
             }
-            .frame(width: 56)
+            .frame(width: 66)
 
-            // Right: card
+            // Right: card, with now-line overlay when task is active
             taskCard
                 .padding(.bottom, 6)
+                .overlay(alignment: .top) {
+                    if isCurrentTask {
+                        nowOverlay
+                    }
+                }
         }
+    }
+
+    private var nowOverlay: some View {
+        HStack(spacing: 6) {
+            Text(Date(), format: .dateTime.hour().minute())
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.orange)
+            Circle()
+                .fill(Color.orange)
+                .frame(width: 8, height: 8)
+            Rectangle()
+                .fill(Color.orange.opacity(0.6))
+                .frame(height: 1.5)
+        }
+        .padding(.horizontal, 10)
+        .offset(y: -1)
     }
 
     private var taskCard: some View {
@@ -1047,6 +1263,67 @@ struct TaskTimelineRow: View {
     }
 }
 
+// MARK: - Schedule Confirmation
+
+struct PendingScheduleInfo: Identifiable {
+    let id = UUID()
+    let task: TaskDefinition
+    let startTime: Date
+}
+
+struct ScheduleConfirmationSheet: View {
+    let info: PendingScheduleInfo
+    let onConfirm: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private var endTime: Date {
+        info.startTime.addingTimeInterval(TimeInterval(info.task.durationMinutes * 60))
+    }
+
+    private let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f
+    }()
+
+    var body: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 6) {
+                let color = Color(hex: info.task.colorHex) ?? .blue
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: info.task.iconName)
+                        .font(.title2)
+                        .foregroundStyle(color)
+                }
+                Text(info.task.title)
+                    .font(.headline)
+                Text("\(timeFormatter.string(from: info.startTime)) – \(timeFormatter.string(from: endTime))")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text("\(info.task.durationMinutes) min")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+
+            HStack(spacing: 12) {
+                Button("Cancel") { dismiss() }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+
+                Button("Schedule") { onConfirm() }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal)
+        }
+        .padding(.top, 28)
+        .padding(.bottom, 12)
+    }
+}
+
 struct NowIndicatorRow: View {
     var body: some View {
         HStack(spacing: 12) {
@@ -1054,7 +1331,7 @@ struct NowIndicatorRow: View {
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .foregroundStyle(.orange)
                 .frame(width: 44, alignment: .trailing)
-                .frame(width: 56)
+                .frame(width: 66)
 
             Circle()
                 .fill(Color.orange)
@@ -1076,8 +1353,8 @@ struct WakeUpRow: View {
             Text(time, format: .dateTime.hour().minute())
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(.orange)
-                .frame(width: 44, alignment: .trailing)
-                .frame(width: 56)
+                .frame(width: 54, alignment: .trailing)
+                .frame(width: 66)
 
             Image(systemName: "sunrise.fill")
                 .font(.system(size: 11, weight: .semibold))
@@ -1115,8 +1392,8 @@ struct WindDownRow: View {
             Text(time, format: .dateTime.hour().minute())
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(.indigo)
-                .frame(width: 44, alignment: .trailing)
-                .frame(width: 56)
+                .frame(width: 54, alignment: .trailing)
+                .frame(width: 66)
 
             Image(systemName: "moon.fill")
                 .font(.system(size: 11, weight: .semibold))
@@ -1152,7 +1429,7 @@ struct FreeSlotRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Color.clear.frame(width: 56)
+            Color.clear.frame(width: 66)
 
             Button(action: onTap) {
                 HStack(spacing: 6) {

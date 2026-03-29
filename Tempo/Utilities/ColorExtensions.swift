@@ -38,6 +38,17 @@ extension Color {
         Color(hex: "#84CC16") ?? .green,    // lime
     ]
 
+    static let taskPresets: [Color] = [
+        Color(hex: "#3B82F6") ?? .blue,     // blue
+        Color(hex: "#6366F1") ?? .indigo,   // indigo
+        Color(hex: "#8B5CF6") ?? .purple,   // purple
+        Color(hex: "#EC4899") ?? .pink,     // pink
+        Color(hex: "#EF4444") ?? .red,      // red
+        Color(hex: "#F97316") ?? .orange,   // orange
+        Color(hex: "#F59E0B") ?? .yellow,   // amber
+        Color(hex: "#10B981") ?? .green,    // emerald
+    ]
+
     static let goalPresets: [Color] = [
         Color(hex: "#10B981") ?? .green,    // emerald
         Color(hex: "#14B8A6") ?? .teal,     // teal

@@ -83,6 +83,9 @@ final class ScheduleItem {
     /// Links to a GoalDefinition library entry (nil = ad-hoc goal or non-goal)
     var goalDefinitionId: UUID?
 
+    /// Links to a TaskDefinition library entry (nil = not from task library)
+    var taskDefinitionId: UUID?
+
     /// Creation timestamp
     var createdAt: Date
 
@@ -215,7 +218,8 @@ final class ScheduleItem {
         originalTaskId: UUID? = nil,
         focusGroupIdRaw: String? = nil,
         habitDefinitionId: UUID? = nil,
-        goalDefinitionId: UUID? = nil
+        goalDefinitionId: UUID? = nil,
+        taskDefinitionId: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -241,6 +245,7 @@ final class ScheduleItem {
         self.focusGroupIdRaw = focusGroupIdRaw
         self.habitDefinitionId = habitDefinitionId
         self.goalDefinitionId = goalDefinitionId
+        self.taskDefinitionId = taskDefinitionId
         self.createdAt = Date()
         self.updatedAt = Date()
     }
