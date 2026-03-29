@@ -86,6 +86,9 @@
 		AB0000000000000000000017 /* GoalLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000007 /* GoalLibraryView.swift */; };
 		AB0000000000000000000018 /* HabitDefinitionEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000008 /* HabitDefinitionEditView.swift */; };
 		AB0000000000000000000019 /* GoalDefinitionEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000009 /* GoalDefinitionEditView.swift */; };
+		AB0000000000000000000060 /* TaskDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000050 /* TaskDefinition.swift */; };
+		AB0000000000000000000061 /* TaskLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000051 /* TaskLibraryView.swift */; };
+		AB0000000000000000000062 /* TaskDefinitionEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000052 /* TaskDefinitionEditView.swift */; };
 		AB0000000000000000000020 /* InsightsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000010 /* InsightsTabView.swift */; };
 /* End PBXBuildFile section */
 
@@ -198,6 +201,9 @@
 		AB0000000000000000000007 /* GoalLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalLibraryView.swift; sourceTree = "<group>"; };
 		AB0000000000000000000008 /* HabitDefinitionEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitDefinitionEditView.swift; sourceTree = "<group>"; };
 		AB0000000000000000000009 /* GoalDefinitionEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDefinitionEditView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000050 /* TaskDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDefinition.swift; sourceTree = "<group>"; };
+		AB0000000000000000000051 /* TaskLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLibraryView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000052 /* TaskDefinitionEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDefinitionEditView.swift; sourceTree = "<group>"; };
 		AB0000000000000000000010 /* InsightsTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsTabView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -330,6 +336,7 @@
 				7930B90A2F48EC6C0083955E /* AppAppearance.swift */,
 				AB0000000000000000000001 /* HabitDefinition.swift */,
 				AB0000000000000000000002 /* GoalDefinition.swift */,
+				AB0000000000000000000050 /* TaskDefinition.swift */,
 				AB0000000000000000000003 /* ScheduleItemType.swift */,
 			);
 			path = Models;
@@ -488,8 +495,10 @@
 				AB0000000000000000000005 /* LibraryView.swift */,
 				AB0000000000000000000006 /* HabitLibraryView.swift */,
 				AB0000000000000000000007 /* GoalLibraryView.swift */,
+				AB0000000000000000000051 /* TaskLibraryView.swift */,
 				AB0000000000000000000008 /* HabitDefinitionEditView.swift */,
 				AB0000000000000000000009 /* GoalDefinitionEditView.swift */,
+				AB0000000000000000000052 /* TaskDefinitionEditView.swift */,
 			);
 			path = Library;
 			sourceTree = "<group>";
@@ -783,6 +792,9 @@
 				AB0000000000000000000017 /* GoalLibraryView.swift in Sources */,
 				AB0000000000000000000018 /* HabitDefinitionEditView.swift in Sources */,
 				AB0000000000000000000019 /* GoalDefinitionEditView.swift in Sources */,
+				AB0000000000000000000060 /* TaskDefinition.swift in Sources */,
+				AB0000000000000000000061 /* TaskLibraryView.swift in Sources */,
+				AB0000000000000000000062 /* TaskDefinitionEditView.swift in Sources */,
 				AB0000000000000000000020 /* InsightsTabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -968,7 +980,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
@@ -984,7 +996,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1000,7 +1012,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Tempo/Tempo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"Tempo/Preview Content\"";
 				DEVELOPMENT_TEAM = KTK23627V8;
 				ENABLE_PREVIEWS = YES;
@@ -1016,7 +1028,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1030,7 +1042,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoFocusExtension/TempoFocusExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoFocusExtension/Info.plist;
@@ -1040,7 +1052,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.blockmonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1055,7 +1067,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoFocusExtension/TempoFocusExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoFocusExtension/Info.plist;
@@ -1065,7 +1077,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.blockmonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1096,7 +1108,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoShieldExtension/TempoShieldExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoShieldExtension/Info.plist;
@@ -1105,7 +1117,7 @@
 					"$(inherited)",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.shieldconfig;
 				PRODUCT_NAME = TempoShieldExtension;
 				SDKROOT = iphoneos;
@@ -1121,7 +1133,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TempoShieldExtension/TempoShieldExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = KTK23627V8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TempoShieldExtension/Info.plist;
@@ -1130,7 +1142,7 @@
 					"$(inherited)",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scheduler.tempo.shieldconfig;
 				PRODUCT_NAME = TempoShieldExtension;
 				SDKROOT = iphoneos;
