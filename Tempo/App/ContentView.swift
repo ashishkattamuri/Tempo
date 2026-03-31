@@ -11,6 +11,7 @@ struct ContentView: View {
     @EnvironmentObject private var sleepManager: SleepManager
     @EnvironmentObject private var compensationTracker: CompensationTracker
     @Query private var allItems: [ScheduleItem]
+    @Query(sort: \TaskDefinition.createdAt) private var taskDefs: [TaskDefinition]
     @State private var selectedDate = Date()
     @State private var showingTaskEdit = false
     @State private var showingReshuffle = false
@@ -18,6 +19,10 @@ struct ContentView: View {
     @State private var showingCompensation = false
     @State private var editingItem: ScheduleItem?
     @State private var selectedTab: Int = 0
+
+    // Voice agent
+    @StateObject private var voiceAgent = VoiceSchedulingAgent(sleepManager: nil)
+    @State private var showVoiceOverlay = false
 
     // Conflict detection state
     @State private var pendingConflictCheck: ScheduleItem?
@@ -157,8 +162,39 @@ struct ContentView: View {
         .sheet(isPresented: $showingCompensation) {
             CompensationView(compensationTracker: compensationTracker)
         }
+        .overlay(alignment: .bottomTrailing) {
+            FloatingMicButton(agent: voiceAgent) {
+                if case .listening = voiceAgent.state {
+                    Task {
+                        await voiceAgent.commitTranscriptAndProcess(
+                            scheduleItems: Array(allItems),
+                            taskDefinitions: Array(taskDefs)
+                        )
+                    }
+                } else {
+                    showVoiceOverlay = true
+                    voiceAgent.startListening()
+                }
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 90)  // above tab bar
+        }
+        .sheet(isPresented: $showVoiceOverlay) {
+            VoiceAgentOverlay(agent: voiceAgent) {
+                voiceAgent.stopListening()
+                showVoiceOverlay = false
+            }
+            .presentationDetents([.height(280)])
+            .presentationDragIndicator(.hidden)
+            .presentationBackground(.clear)
+        }
         .onAppear {
             reshuffleEngine.sleepManager = sleepManager
+            voiceAgent.sleepManager = sleepManager
+            Task { await voiceAgent.setup() }
+        }
+        .onDisappear {
+            voiceAgent.teardown()
         }
     }
 

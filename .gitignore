@@ -69,6 +69,7 @@ Thumbs.db
 .env
 *.xcconfig
 !*.xcconfig.sample
+Tempo/Utilities/Secrets.swift
 
 # Private/confidential project files
 REQUIREMENTS.md

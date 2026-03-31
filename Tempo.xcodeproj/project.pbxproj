@@ -90,6 +90,11 @@
 		AB0000000000000000000061 /* TaskLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000051 /* TaskLibraryView.swift */; };
 		AB0000000000000000000062 /* TaskDefinitionEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000052 /* TaskDefinitionEditView.swift */; };
 		AB0000000000000000000020 /* InsightsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000010 /* InsightsTabView.swift */; };
+		AB000000000000000000007E /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000079 /* Secrets.swift */; };
+		AB000000000000000000007F /* GeminiLiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000007A /* GeminiLiveService.swift */; };
+		AB0000000000000000000080 /* VoiceSchedulingAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000007B /* VoiceSchedulingAgent.swift */; };
+		AB0000000000000000000081 /* FloatingMicButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000007C /* FloatingMicButton.swift */; };
+		AB0000000000000000000082 /* VoiceAgentOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000007D /* VoiceAgentOverlay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,6 +210,11 @@
 		AB0000000000000000000051 /* TaskLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLibraryView.swift; sourceTree = "<group>"; };
 		AB0000000000000000000052 /* TaskDefinitionEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDefinitionEditView.swift; sourceTree = "<group>"; };
 		AB0000000000000000000010 /* InsightsTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsTabView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000079 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		AB000000000000000000007A /* GeminiLiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiLiveService.swift; sourceTree = "<group>"; };
+		AB000000000000000000007B /* VoiceSchedulingAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSchedulingAgent.swift; sourceTree = "<group>"; };
+		AB000000000000000000007C /* FloatingMicButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingMicButton.swift; sourceTree = "<group>"; };
+		AB000000000000000000007D /* VoiceAgentOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentOverlay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -383,6 +393,7 @@
 				300000000000000000000016 /* Components */,
 				AB0000000000000000000021 /* Library */,
 				AB0000000000000000000022 /* Insights */,
+				AB0000000000000000000083 /* VoiceAgent */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -394,6 +405,7 @@
 				100000000000000000000009 /* DateExtensions.swift */,
 				100000000000000000000010 /* TimeCalculations.swift */,
 				AB0000000000000000000004 /* ColorExtensions.swift */,
+				AB0000000000000000000079 /* Secrets.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -464,6 +476,8 @@
 				79B448AE2F48DA1B0092638B /* CalendarService.swift */,
 				FB1000000000000000000005 /* FocusBlockManager.swift */,
 				FB100000000000000000000C /* SchedulingAssistant.swift */,
+				AB000000000000000000007A /* GeminiLiveService.swift */,
+				AB000000000000000000007B /* VoiceSchedulingAgent.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -509,6 +523,15 @@
 				AB0000000000000000000010 /* InsightsTabView.swift */,
 			);
 			path = Insights;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000083 /* VoiceAgent */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000000000000000007C /* FloatingMicButton.swift */,
+				AB000000000000000000007D /* VoiceAgentOverlay.swift */,
+			);
+			path = VoiceAgent;
 			sourceTree = "<group>";
 		};
 		51249E57C7F2527C0A3A4E24 /* TempoTests */ = {
@@ -796,6 +819,11 @@
 				AB0000000000000000000061 /* TaskLibraryView.swift in Sources */,
 				AB0000000000000000000062 /* TaskDefinitionEditView.swift in Sources */,
 				AB0000000000000000000020 /* InsightsTabView.swift in Sources */,
+				AB000000000000000000007E /* Secrets.swift in Sources */,
+				AB000000000000000000007F /* GeminiLiveService.swift in Sources */,
+				AB0000000000000000000080 /* VoiceSchedulingAgent.swift in Sources */,
+				AB0000000000000000000081 /* FloatingMicButton.swift in Sources */,
+				AB0000000000000000000082 /* VoiceAgentOverlay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

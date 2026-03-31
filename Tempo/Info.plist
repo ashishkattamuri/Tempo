@@ -20,6 +20,14 @@
 	<key>NSCalendarsUsageDescription</key>
 	<string>Tempo imports your Apple Calendar events as non-negotiable tasks to protect your commitments.</string>
 
+	<!-- Voice scheduling agent: microphone access for real-time speech capture -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Tempo listens to your voice so the scheduling assistant can add and manage tasks hands-free.</string>
+
+	<!-- Voice scheduling agent: on-device speech recognition -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Tempo transcribes your voice on-device to understand scheduling requests without sending audio to a server.</string>
+
 	<!-- Declares that this app uses no non-exempt encryption, skipping export compliance questions -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
