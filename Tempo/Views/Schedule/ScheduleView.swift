@@ -195,7 +195,6 @@ struct ScheduleView: View {
                 case (let a, let b): return a! < b!
                 }
             }
-            .prefix(3)
             .map { $0 }
     }
 
