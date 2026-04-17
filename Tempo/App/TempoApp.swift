@@ -2,6 +2,14 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 
+// MARK: - Feature Flags
+
+/// Compile-time feature flags. Flip to `true` to enable, `false` to ship disabled.
+enum FeatureFlags {
+    /// Voice scheduling agent (Apple Foundation Models, iOS 26+).
+    static let voiceAgent: Bool = false
+}
+
 /// Main entry point for the Tempo app.
 /// Configures SwiftData ModelContainer and sets up the root view.
 @main

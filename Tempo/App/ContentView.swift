@@ -11,7 +11,9 @@ struct ContentView: View {
     @EnvironmentObject private var sleepManager: SleepManager
     @EnvironmentObject private var compensationTracker: CompensationTracker
     @Query private var allItems: [ScheduleItem]
-    @Query(sort: \TaskDefinition.createdAt) private var taskDefs: [TaskDefinition]
+    @Query(sort: \TaskDefinition.createdAt)  private var taskDefs: [TaskDefinition]
+    @Query(sort: \HabitDefinition.createdAt) private var habitDefs: [HabitDefinition]
+    @Query(sort: \GoalDefinition.createdAt)  private var goalDefs: [GoalDefinition]
     @State private var selectedDate = Date()
     @State private var showingTaskEdit = false
     @State private var showingReshuffle = false
@@ -163,30 +165,77 @@ struct ContentView: View {
             CompensationView(compensationTracker: compensationTracker)
         }
         .overlay(alignment: .bottomTrailing) {
-            FloatingMicButton(agent: voiceAgent) {
-                if case .listening = voiceAgent.state {
-                    Task {
-                        await voiceAgent.commitTranscriptAndProcess(
-                            scheduleItems: Array(allItems),
-                            taskDefinitions: Array(taskDefs)
+            if FeatureFlags.voiceAgent {
+                FloatingMicButton(agent: voiceAgent) {
+                    switch voiceAgent.state {
+                    case .listening:
+                        voiceAgent.stopListening()
+                    case .idle, .error:
+                        showVoiceOverlay = true
+                        voiceAgent.startConversation(
+                            scheduleItems:    Array(allItems),
+                            taskDefinitions:  Array(taskDefs),
+                            habitDefinitions: Array(habitDefs),
+                            goalDefinitions:  Array(goalDefs)
                         )
+                    case .processing, .responding:
+                        break
                     }
-                } else {
-                    showVoiceOverlay = true
-                    voiceAgent.startListening()
                 }
+                .padding(.trailing, 20)
+                .padding(.bottom, 90)
             }
-            .padding(.trailing, 20)
-            .padding(.bottom, 90)  // above tab bar
         }
         .sheet(isPresented: $showVoiceOverlay) {
-            VoiceAgentOverlay(agent: voiceAgent) {
-                voiceAgent.stopListening()
-                showVoiceOverlay = false
+            if FeatureFlags.voiceAgent {
+                VoiceAgentOverlay(
+                    agent: voiceAgent,
+                    onDismiss: {
+                        voiceAgent.endConversation()
+                        showVoiceOverlay = false
+                    }
+                )
+                .presentationDetents([.large, .medium])
+                .presentationDragIndicator(.visible)
             }
-            .presentationDetents([.height(280)])
-            .presentationDragIndicator(.hidden)
-            .presentationBackground(.clear)
+        }
+        .onChange(of: voiceAgent.pendingAction) { _, action in
+            guard let action else { return }
+            switch action {
+            case .createTask(let title, let startTime, let durationMinutes, let category, let notes, let defId):
+                let item = ScheduleItem(
+                    title: title, category: category,
+                    startTime: startTime, durationMinutes: durationMinutes,
+                    notes: notes, taskDefinitionId: defId
+                )
+                modelContext.insert(item)
+                try? modelContext.save()
+                selectedDate = startTime
+                selectedTab  = 0
+
+            case .rescheduleTask(let id, let newStartTime):
+                if let item = allItems.first(where: { $0.id == id }) {
+                    item.startTime    = newStartTime
+                    item.scheduledDate = Calendar.current.startOfDay(for: newStartTime)
+                    item.touch()
+                    try? modelContext.save()
+                }
+
+            case .completeTask(let id):
+                if let item = allItems.first(where: { $0.id == id }) {
+                    item.isCompleted = true
+                    item.touch()
+                    try? modelContext.save()
+                }
+
+            case .deleteTask(let id):
+                if let item = allItems.first(where: { $0.id == id }) {
+                    modelContext.delete(item)
+                    try? modelContext.save()
+                }
+            }
+            voiceAgent.pendingAction = nil
+            voiceAgent.refreshSchedule(Array(allItems))
         }
         .onAppear {
             reshuffleEngine.sleepManager = sleepManager
