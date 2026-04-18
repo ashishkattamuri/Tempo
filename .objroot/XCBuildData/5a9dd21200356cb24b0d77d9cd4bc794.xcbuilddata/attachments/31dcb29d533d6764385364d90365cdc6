@@ -1,0 +1,19 @@
+{
+  "" : {
+    "diagnostics" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldExtension-primary.dia",
+    "emit-module-dependencies" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldExtension-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldExtension-primary-emit-module.dia",
+    "pch" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldExtension-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldExtension-primary.swiftdeps"
+  },
+  "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/TempoShieldExtension/TempoShieldConfiguration.swift" : {
+    "const-values" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration.swiftconstvalues",
+    "dependencies" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration.d",
+    "diagnostics" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration.dia",
+    "index-unit-output-path" : "/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration.o",
+    "llvm-bc" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration.bc",
+    "object" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration.o",
+    "swift-dependencies" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration.swiftdeps",
+    "swiftmodule" : "/Users/ashishkattamuri/workspace/projects/tempo/Tempo/.objroot/Tempo.build/Debug-iphoneos/TempoShieldExtension.build/Objects-normal/arm64/TempoShieldConfiguration~partial.swiftmodule"
+  }
+}
