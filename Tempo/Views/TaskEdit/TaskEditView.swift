@@ -723,21 +723,27 @@ struct TaskEditView: View {
                 recurrenceEndDate: recurrenceEndDate
             )
 
-            newItem.focusGroupIdRaw = focusGroupId?.uuidString
+            newItem.focusGroupIdRaw   = focusGroupId?.uuidString
             newItem.habitDefinitionId = selectedHabitDef?.id
-            newItem.goalDefinitionId = selectedGoalDef?.id
+            newItem.goalDefinitionId  = selectedGoalDef?.id
             modelContext.insert(newItem)
 
-            if isRecurring && !recurrenceDays.isEmpty {
-                generateRecurringInstances(for: newItem)
-            }
-
-            if newItem.isFocusBlock {
-                focusBlockManager.scheduleBlocking(for: newItem)
-                focusBlockManager.scheduleNotifications(for: newItem)
-            }
-
+            // Dismiss immediately so the UI doesn't block on heavy work below
             onSave(newItem)
+
+            // Generate instances and schedule focus blocking asynchronously
+            // so the sheet is already gone before the loop runs
+            let shouldRecur  = isRecurring && !recurrenceDays.isEmpty
+            let hasFocusBlock = newItem.isFocusBlock
+            Task { @MainActor in
+                if shouldRecur {
+                    generateRecurringInstances(for: newItem)
+                }
+                if hasFocusBlock {
+                    focusBlockManager.scheduleBlocking(for: newItem)
+                    focusBlockManager.scheduleNotifications(for: newItem)
+                }
+            }
         }
     }
 
@@ -808,6 +814,7 @@ struct TaskEditView: View {
             future.notes = notes.isEmpty ? nil : notes
             future.isEveningTask = isEveningTask
             future.isGentleTask = isGentleTask
+            future.focusGroupIdRaw = focusGroupId?.uuidString
 
             // Preserve each instance's own date, only update the time
             var comps = Calendar.current.dateComponents([.year, .month, .day], from: future.scheduledDate)
@@ -815,6 +822,13 @@ struct TaskEditView: View {
             comps.minute = timeComponents.minute
             if let newStart = Calendar.current.date(from: comps) {
                 future.startTime = newStart
+            }
+
+            // Re-schedule focus blocking with updated time
+            if future.isFocusBlock {
+                focusBlockManager.scheduleBlocking(for: future)
+            } else {
+                focusBlockManager.cancelBlocking(for: future)
             }
 
             future.touch()
@@ -836,6 +850,9 @@ struct TaskEditView: View {
             if recurrenceDays.contains(weekday) {
                 let instance = template.createRecurrenceInstance(for: currentDate)
                 modelContext.insert(instance)
+                if instance.isFocusBlock {
+                    focusBlockManager.scheduleBlocking(for: instance)
+                }
             }
             currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
         }

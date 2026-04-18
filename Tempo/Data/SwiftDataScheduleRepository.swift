@@ -235,6 +235,25 @@ final class SwiftDataScheduleRepository: ScheduleRepository {
                 let existingInstances = try await fetchRecurringInstances(parentId: template.id)
                 let existingDates = Set(existingInstances.map { calendar.startOfDay(for: $0.scheduledDate) })
 
+                // Migration: patch instances that are missing definition IDs or focus group
+                // (instances created before the fix that copies them from the template)
+                for instance in existingInstances {
+                    var patched = false
+                    if instance.habitDefinitionId == nil, let id = template.habitDefinitionId {
+                        instance.habitDefinitionId = id; patched = true
+                    }
+                    if instance.goalDefinitionId == nil, let id = template.goalDefinitionId {
+                        instance.goalDefinitionId = id; patched = true
+                    }
+                    if instance.taskDefinitionId == nil, let id = template.taskDefinitionId {
+                        instance.taskDefinitionId = id; patched = true
+                    }
+                    if instance.focusGroupIdRaw == nil, let raw = template.focusGroupIdRaw {
+                        instance.focusGroupIdRaw = raw; patched = true
+                    }
+                    if patched { instance.touch() }
+                }
+
                 // Generate missing instances
                 var currentDate = dateRange.lowerBound
                 while currentDate <= dateRange.upperBound {

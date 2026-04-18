@@ -287,7 +287,7 @@ final class ScheduleItem {
         newStartComponents.minute = timeComponents.minute
         let newStartTime = calendar.date(from: newStartComponents) ?? date
 
-        return ScheduleItem(
+        let instance = ScheduleItem(
             title: title,
             category: category,
             startTime: newStartTime,
@@ -304,6 +304,13 @@ final class ScheduleItem {
             parentTaskId: id,
             isRecurrenceInstance: true
         )
+        // Inherit parent's definition links so icon/color are preserved on each instance
+        instance.habitDefinitionId = habitDefinitionId
+        instance.goalDefinitionId  = goalDefinitionId
+        instance.taskDefinitionId  = taskDefinitionId
+        // Inherit focus block from parent so blocking is active on each instance
+        instance.focusGroupIdRaw   = focusGroupIdRaw
+        return instance
     }
 
     /// Check if this item overlaps with another time range

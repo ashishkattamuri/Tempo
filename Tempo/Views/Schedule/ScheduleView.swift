@@ -1212,10 +1212,12 @@ struct TaskTimelineRow: View {
                     }
 
                     // Tag chips
-                    if item.isFocusBlock || item.isRecurring {
+                    let showFocus     = item.isFocusBlock
+                    let showRecurring = item.isRecurring || item.isRecurrenceInstance
+                    if showFocus || showRecurring {
                         HStack(spacing: 6) {
-                            if item.isFocusBlock  { TagChip("FOCUS") }
-                            if item.isRecurring   { TagChip("RECURRING") }
+                            if showFocus     { TagChip("FOCUS") }
+                            if showRecurring { TagChip("RECURRING") }
                         }
                     }
                 }
@@ -1749,21 +1751,29 @@ struct ConflictResolutionSheet: View {
                     }
 
                 case .moveNew(let options):
-                    ForEach(options, id: \.self) { date in
-                        Button(action: {
-                            onResolve(resolution, .moveNew(to: date))
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.right")
-                                Text("Move new task to \(formatTime(date))")
+                    Text("Move \"\(resolution.newItem.title)\" to")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 10) {
+                        ForEach(options, id: \.self) { date in
+                            Button(action: {
+                                onResolve(resolution, .moveNew(to: date))
+                            }) {
+                                Text(formatTime(date))
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.accentColor)
+                                    .cornerRadius(10)
                             }
-                            .font(.subheadline)
-                            .fontWeight(options.count == 1 ? .medium : .regular)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.accentColor)
-                            .cornerRadius(10)
                         }
                     }
 
