@@ -87,12 +87,9 @@ final class TempoShieldConfiguration: ShieldConfigurationDataSource {
     // MARK: - Helpers
 
     private func buildSubtitle(taskTitle: String?, endDate: Date?) -> String {
-        var lines: [String] = []
-
-        lines.append("● FOCUS BLOCK ACTIVE")
+        var lines: [String] = [""]   // blank line between title and task
 
         if let task = taskTitle, !task.isEmpty {
-            lines.append("")
             lines.append(task)
         }
 
@@ -100,11 +97,8 @@ final class TempoShieldConfiguration: ShieldConfigurationDataSource {
             let tf = DateFormatter()
             tf.dateFormat = "h:mm a"
             let endStr = tf.string(from: end)
-
             let remaining = max(0, Int(end.timeIntervalSinceNow / 60))
             let remainingStr = remaining > 0 ? "\(remaining)m remaining" : "ending now"
-
-            lines.append("")
             lines.append("Ends \(endStr)  ·  \(remainingStr)")
         }
 
