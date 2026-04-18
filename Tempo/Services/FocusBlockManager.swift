@@ -16,7 +16,8 @@ final class FocusBlockManager: ObservableObject {
     private let defaults: UserDefaults
     private let groupsKey = "focusGroups"
     private let activityMappingKey = "focusActivityMapping"
-    private let activeTaskTitleKey = "activeShieldTaskTitle"
+    private let activeTaskTitleKey   = "activeShieldTaskTitle"
+    private let activeShieldEndTimeKey = "activeShieldEndTime"   // TimeInterval since 1970
     private let shieldExtensionInitTimestampKey = "shieldExtension.initTimestamp"
     private let shieldExtensionLastInvocationTimestampKey = "shieldExtension.lastInvocationTimestamp"
     private let shieldExtensionLastInvocationKindKey = "shieldExtension.lastInvocationKind"
@@ -103,7 +104,7 @@ final class FocusBlockManager: ObservableObject {
         // If task is currently active, apply shields immediately from the main app.
         // The extension will also apply them when DeviceActivity fires, but this is instant.
         if task.startTime <= now, let group = groups.first(where: { $0.id == groupId }) {
-            applyShields(for: group, taskTitle: task.title)
+            applyShields(for: group, taskTitle: task.title, endTime: task.endTime)
         }
 
         let activityName = DeviceActivityName("focus-\(task.id.uuidString)")
@@ -142,7 +143,7 @@ final class FocusBlockManager: ObservableObject {
 
     /// Apply shields immediately from the main app.
     /// Used when a focus task is already active at save time so we don't wait for the extension.
-    func applyShields(for group: FocusGroup, taskTitle: String? = nil) {
+    func applyShields(for group: FocusGroup, taskTitle: String? = nil, endTime: Date? = nil) {
         let selection = group.selection
         let appTokens = selection.applicationTokens
         let catTokens = selection.categoryTokens
@@ -157,14 +158,16 @@ final class FocusBlockManager: ObservableObject {
         if appTokens.isEmpty && catTokens.isEmpty {
             print("FocusBlockManager: Warning — no tokens found in selection. Apps may not be blocked.")
         }
-        // Store task title so the shield extension can show personalised copy
+        // Store task title + end time so the shield extension can show personalised copy
         defaults.set(taskTitle, forKey: activeTaskTitleKey)
+        defaults.set(endTime?.timeIntervalSince1970, forKey: activeShieldEndTimeKey)
         logShieldExtensionDiagnostics(context: "applyShields")
     }
 
     func clearShields() {
         store.clearAllSettings()
         defaults.removeObject(forKey: activeTaskTitleKey)
+        defaults.removeObject(forKey: activeShieldEndTimeKey)
         logShieldExtensionDiagnostics(context: "clearShields")
         print("FocusBlockManager: Cleared all shields")
     }
@@ -182,7 +185,7 @@ final class FocusBlockManager: ObservableObject {
            let groupId = UUID(uuidString: groupIdStr),
            let group = groups.first(where: { $0.id == groupId }) {
             print("FocusBlockManager: Active focus task '\(activeTask.title)' — applying shields")
-            applyShields(for: group, taskTitle: activeTask.title)
+            applyShields(for: group, taskTitle: activeTask.title, endTime: activeTask.endTime)
         } else {
             // No active focus task — ensure shields are cleared
             print("FocusBlockManager: No active focus task — clearing shields")
